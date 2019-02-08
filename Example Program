@@ -1,0 +1,80 @@
+
+import packageName
+import:
+  packageName
+  packageName
+
+
+## Comment
+
+#{
+  Multiline
+  Comment
+}#
+
+exampleFunc :: (typeA, typeB, typeC) -> String
+
+...
+
+func exampleFunc(a,b,c) {
+
+  [Int] arr = [1,2,3,4]
+  [String] strs = [
+    "Test1",
+    "Test2",
+    "Test3"
+  ]
+
+  Person p = Person(20, "Harry")
+
+  String d = "Hello, World!"
+
+  if (d == "Hello, World!" && true || true) {
+    #blah
+  } else {
+    #blah
+  }
+
+  String x = "1234"
+  loop ( , x == "1234", ) {
+
+  }
+
+  loop (Int y, y == 50, y++) {
+    print(y)
+  }
+
+  loop (String h = "key"; Char g = 't', h == "keyt"  , h += g ) {
+
+  }
+
+  return a
+}
+
+
+class Person {
+
+  Private:
+    Int age
+    String name
+
+  Public:
+    Person :: (Int, String) -> Person
+    getName :: () -> String
+    getAge :: () -> Int
+
+  Funcs:
+    Person(age, name) {
+      this.name = name
+      this.age = age
+    }
+
+    getName() {
+      return Name
+    }
+
+    getAge() {
+      return age
+    }
+
+}
