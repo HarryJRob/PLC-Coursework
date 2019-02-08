@@ -1,0 +1,66 @@
+import:
+  package1
+  package2
+
+LISTS
+[Int] arr = [1,2,3,4]
+[String] strs = [
+  "Test1",
+  "Test2",
+  "Test3"
+]
+
+OBJECTS
+Person p = Person(20,"Harry")
+
+SAMPLE FUNCTIONS:
+hw :: (typeA,typeB,typeC) -> String
+func hw(a,b,c) {
+  String d = "Herro World!"
+  return d
+}
+
+CLASS
+class Class1 {
+  private: 
+    int a = 1
+    func1 :: (int,String,Char) -> String
+
+  public:
+    func2 :: (int,String,Char) -> String
+    func3 :: (int,String,Char) -> String
+
+  protected:
+    func4 :: (int,String,Char) -> String
+
+  functions:
+    func func1(d,e,f) {
+      return e+d*f
+    }
+}
+
+
+if (condition) {
+  func1
+}
+else{
+  func2
+} 
+
+loop (inialise loop variables, ending condition) {
+
+}
+
+loop (starting condition, ending condition, <optional> increment loop variables) {
+}
+
+
+
+
+
+COMMENTS
+# this is one line comment
+
+#{
+  this is multiline comments
+}#
