@@ -1,10 +1,4 @@
 
-import packageName
-import:
-  packageName
-  packageName
-
-
 ## Comment
 
 #{
@@ -25,7 +19,9 @@ func exampleFunc(a,b,c) {
     "Test3"
   ]
 
-  Person p = Person(20, "Harry")
+  # [Int] arr = [1...] ==  [1,2,3,4,5...]
+  # [1,2,3] + 4 == [1,2,3,4]
+  # [1...] @ 2 == 1
 
   String d = "Hello, World!"
 
@@ -49,32 +45,4 @@ func exampleFunc(a,b,c) {
   }
 
   return a
-}
-
-
-class Person {
-
-  Private:
-    Int age
-    String name
-
-  Public:
-    Person :: (Int, String) -> Person
-    getName :: () -> String
-    getAge :: () -> Int
-
-  Funcs:
-    Person(age, name) {
-      this.name = name
-      this.age = age
-    }
-
-    getName() {
-      return Name
-    }
-
-    getAge() {
-      return age
-    }
-
 }
