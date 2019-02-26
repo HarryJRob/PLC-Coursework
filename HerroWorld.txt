@@ -22,7 +22,7 @@ func hw(a,b,c) {
 
 CLASS
 class Class1 {
-  private: 
+  private:
     int a = 1
     func1 :: (int,String,Char) -> String
 
@@ -45,13 +45,13 @@ if (condition) {
 }
 else{
   func2
-} 
+}
 
-loop (inialise loop variables, ending condition) {
+loop (initialise loop variables, ending condition) {
 
 }
 
-loop (starting condition, ending condition, <optional> increment loop variables) {
+loop (initialise loop variables, ending condition, <optional> increment loop variables) {
 }
 
 

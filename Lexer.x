@@ -31,6 +31,8 @@ Tokens :-
   \^            { \p s -> TokenSymExponent p }
   \&            { \p s -> TokenSymAnd p }
   \|            { \p s -> TokenSymOr p }
+  \<            { \p s -> TokenSymLessThan p }
+  \>            { \p s -> TokenSymGreaterThan p }
 
   "=="          { \p s -> TokenOpEquals p }
   "++"          { \p s -> TokenOpIncrement p }
@@ -89,6 +91,8 @@ data Token =
   TokenSymExponent AlexPosn |
   TokenSymAnd AlexPosn |
   TokenSymOr AlexPosn |
+  TokenSymLessThan AlexPosn |
+  TokenSymGreaterThan AlexPosn |
   TokenOpEquals AlexPosn |
   TokenOpIncrement AlexPosn |
   TokenOpDecrement AlexPosn |
@@ -123,5 +127,55 @@ data Token =
   deriving (Eq,Show)
 
 tokenPosn :: Token -> String
-tokenPosn _ = ""
+tokenPosn (TokenCommentStart (AlexPn a l c) )          = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenCommentEnd (AlexPn a l c) )            = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenTypeString (AlexPn a l c) )            = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenTypeChar (AlexPn a l c) )              = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenTypeInt (AlexPn a l c) )               = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenTypeBoolean (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenListStart (AlexPn a l c) )             = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenListEnd (AlexPn a l c) )               = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenListSeries (AlexPn a l c) )            = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenListGetElement (AlexPn a l c) )        = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenSymAdd (AlexPn a l c) )                = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenSymMinus (AlexPn a l c) )              = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenSymMultiply (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenSymDivide (AlexPn a l c) )             = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenSymModulo (AlexPn a l c) )             = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenSymExponent (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenSymAnd (AlexPn a l c) )                = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenSymOr (AlexPn a l c) )                 = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenSymLessThan (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenSymGreaterThan (AlexPn a l c) )        = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenOpEquals (AlexPn a l c) )              = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenOpIncrement (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenOpDecrement (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenOpAddition (AlexPn a l c) )            = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenOpSubtraction (AlexPn a l c) )         = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenOpMultiplication (AlexPn a l c) )      = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenOpDivision (AlexPn a l c) )            = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenOpModulus (AlexPn a l c) )             = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenOpExponation (AlexPn a l c) )          = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenComma (AlexPn a l c) )                 = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenSemicolon (AlexPn a l c) )             = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenAssignment (AlexPn a l c) )            = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenCurlyBracketOpen (AlexPn a l c) )      = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenCurlyBracketClose (AlexPn a l c) )     = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenBracketOpen (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenBracketClose (AlexPn a l c) )          = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenTypeDeclaration (AlexPn a l c) )       = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenFuncTransition (AlexPn a l c) )        = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenKeywordLoop (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenKeywordIf (AlexPn a l c) )             = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenKeywordThen (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenKeywordElse (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenKeywordFunc (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenKeywordReturn (AlexPn a l c) )         = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenKeywordPrint (AlexPn a l c) )          = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenVariable (AlexPn a l c) s )            = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenString (AlexPn a l c) s )              = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenChar (AlexPn a l c) char )             = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenInteger (AlexPn a l c) i )             = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenBoolTrue (AlexPn a l c) )              = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenBoolFalse  (AlexPn a l c) )            = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 }
