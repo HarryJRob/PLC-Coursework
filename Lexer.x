@@ -33,6 +33,7 @@ Tokens :-
   \|            { \p s -> TokenSymOr p }
   \<            { \p s -> TokenSymLessThan p }
   \>            { \p s -> TokenSymGreaterThan p }
+  \!            { \p s -> TokenSymNot p }
 
   "=="          { \p s -> TokenOpEquals p }
   "++"          { \p s -> TokenOpIncrement p }
@@ -62,12 +63,12 @@ Tokens :-
   return        { \p s -> TokenKeywordReturn p }
   print         { \p s -> TokenKeywordPrint p }
 
-  $alpha[$alpha $digit]* { \p s -> TokenVariable p s}
-  '\"'.*'\"'    { \p s -> TokenString p s }
-  '\''.'\''     { \p (_:c:_) -> TokenChar p c }
-  $digit+       { \p s -> TokenInteger p (read s) }
   [t T]rue      { \p s -> TokenBoolTrue p }
   [f F]alse     { \p s -> TokenBoolFalse p }
+  \".*\"        { \p s -> TokenString p s }
+  \'.\'         { \p (_:c:_) -> TokenChar p c }
+  $digit+       { \p s -> TokenInteger p (read s) }
+  $alpha[$alpha $digit]* { \p s -> TokenVariable p s}
 
 {
 -- Each action has type :: String -> Token
@@ -93,6 +94,7 @@ data Token =
   TokenSymOr AlexPosn |
   TokenSymLessThan AlexPosn |
   TokenSymGreaterThan AlexPosn |
+  TokenSymNot AlexPosn |
   TokenOpEquals AlexPosn |
   TokenOpIncrement AlexPosn |
   TokenOpDecrement AlexPosn |
@@ -147,6 +149,7 @@ tokenPosn (TokenSymAnd (AlexPn a l c) )                = ("Line: " ++ show l ++ 
 tokenPosn (TokenSymOr (AlexPn a l c) )                 = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenSymLessThan (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenSymGreaterThan (AlexPn a l c) )        = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenSymNot (AlexPn a l c))                 = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenOpEquals (AlexPn a l c) )              = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenOpIncrement (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenOpDecrement (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )

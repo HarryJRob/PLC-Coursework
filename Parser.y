@@ -25,6 +25,7 @@ import Lexer
     '|'       { TokenSymOr p }
     '<'       { TokenSymLessThan p }
     '>'       { TokenSymGreaterThan p }
+    '!'       { TokenSymNot p }
     "=="      { TokenOpEquals p }
     "++"      { TokenOpIncrement p }
     "--"      { TokenOpDecrement p }
@@ -60,38 +61,64 @@ import Lexer
 
 
 %%
-Exp : var "::" '(' TypeList ')' "->" Type    { FuncTypeDeclaration $1 $4 $7 }
-    | func var '(' VarList ')' '{' ExpList '}' { FuncDeclaration $2 $4 $7 }
-    | loop '(' AssignmentList ',' Exp ',' Exp ')' '{' ExpList '}' { ForLoop $3 $5 $7 $10 }
-    | loop '(' AssignmentList ',' Exp ')' '{' ExpList '}'     { UntilLoop $3 $5 $8 }
-    | Type var '=' Value    { Assignment $1 $2 $4 }
-    | Type var '=' var '(' VarList ')'  { FunctionCall $1 $2 $4 $6 }
+Exp : var "::" '(' TypeList ')' "->" Type       { FuncTypeDeclaration $1 $4 $7 }
+    | func var '(' VarList ')' '{' ExpList '}'  { FuncDeclaration $2 $4 $7 }
+    -- | loop '(' AssignmentList ',' Exp ',' Exp ')' '{' ExpList '}' { ForLoop $3 $5 $7 $10 }
+    -- | loop '(' AssignmentList ',' Exp ')' '{' ExpList '}'     { UntilLoop $3 $5 $8 }
+    | Type var '=' Value                        { Assignment $1 $2 $4 }
 
-Value : var       { VariableValue $1 }
+Value : var '(' ValueList ')' { FunctionCall $1 $3 }
+      | var       { VariableValue $1 }
       | str       { StringValue $1 }
       | int       { IntValue $1 }
       | char      { CharValue $1 }
       | true      { TrueValue }
       | false     { FalseValue }
 
-AssignmentList : Assignment AssignmentList  { AssignmentList $1 $2}
-               | Assignment                 { Assign $1 }
+BooleanOperators : '&'              { OperatorAnd }
+                 | '|'              { OperatorOr }
+                 | '<'              { OperatorLessThan }
+                 | '>'              { OperatorMoreThan }
+                 | '!'              { OperatorNot }
+                 | "=="             { OperatorEquals }
 
-VarList : var ',' VarList       { VarList $1 $3 }
-        | var                   { Var $1 }
+ArithmeticMultipleOperator : '+'            { OperatorAdd }
+                           | '-'            { OperatorMinus }
+                           | '*'            { OperatorMultiply }
+                           | '/'            { OperatorDivide }
+                           | '%'            { OperatorModulo }
+                           | '^'            { OperatorExponent }
 
-ExpList : Exp ExpList                             { ExpList $1 $2 }
-        | Exp ';' ExpList                         { ExpList $1 $3 }
-        | Exp                                     { Exp $1 }
+ArithmeticSingularOperator : "++"           { OperatorIncrement }
+                           | "--"           { OperatorDecrement }
+                           | "+="           { OperatorAddition }
+                           | "-="           { OperatorSubtraction }
+                           | "*="           { OperatorMultiplication }
+                           | "/="           { OperatorDivision }
+                           | "%="           { OperatorModulus }
+                           | "^="           { OperatorExponation }
 
-TypeList : Type ',' TypeList               { TypeList $1 $3 }
-         | Type                            { Type $1 }
+
+Condition : Value BooleanOperators Value { Condition $1 $2 $3 }
+
+ValueList : Value ',' ValueList     { ValueList $1 $3 }
+          | Value                   { Value $1 }
+
+VarList : var ',' VarList           { VarList $1 $3 }
+        | var                       { Var $1 }
+
+ExpList : Exp ExpList               { ExpList $1 $2 }
+        | Exp ';' ExpList           { ExpList $1 $3 }
+        | Exp                       { Exp $1 }
+
+TypeList : Type ',' TypeList        { TypeList $1 $3 }
+         | Type                     { Type $1 }
 
 
 Type : String     { TypeString }
-     | Char      { TypeChar }
-     | Int       { TypeInt }
-     | Bool      { TypeBool }
+     | Char       { TypeChar }
+     | Int        { TypeInt }
+     | Bool       { TypeBool }
 
 {
 parseError :: [Token] -> a
@@ -99,13 +126,13 @@ parseError (t:ts) = error ("Parse error at: " ++ tokenPosn t)
 
 data Exp = FuncTypeDeclaration String TypeList Type
          | FuncDeclaration String VarList ExpList
-         | ForLoop AssignmentList Exp Exp ExpList
-         | UntilLoop AssignmentList Exp ExpList
+         -- | ForLoop AssignmentList Exp Exp ExpList
+         -- | UntilLoop AssignmentList Exp ExpList
          | Assignment Type String Value
-         | FunctionCall Type String String VarList
          deriving Show
 
-data Value = VariableValue String
+data Value = FunctionCall String ValueList
+           | VariableValue String
            | StringValue String
            | IntValue Int
            | CharValue Char
@@ -113,9 +140,40 @@ data Value = VariableValue String
            | FalseValue
            deriving Show
 
-data AssignmentList = AssignmentList Assignment AssignmentList
-                    | Assign Assignment
-                    deriving Show
+data BooleanOperator = OperatorAnd
+                     | OperatorOr
+                     | OperatorLessThan
+                     | OperatorMoreThan
+                     | OperatorNot
+                     | OperatorEquals
+                     deriving Show
+
+data ArithmeticMultiple =
+
+data ArithmeticMultipleOperator = OperatorAdd
+                                | OperatorMinus
+                                | OperatorMultiply
+                                | OperatorDivide
+                                | OperatorModulo
+                                | OperatorExponent
+                                deriving Show
+
+data ArithmeticSingularOperator = OperatorIncrement
+                                | OperatorDecrement
+                                | OperatorAddition
+                                | OperatorSubtraction
+                                | OperatorMultiplication
+                                | OperatorDivision
+                                | OperatorModulus
+                                | OperatorExponation
+                                deriving Show
+
+data Condition = Condition Value BooleanOperator Value
+               deriving Show
+
+data ValueList = ValueList Value ValueList
+               | Value Value
+               deriving Show
 
 data VarList = VarList String VarList
              | Var String
