@@ -23,19 +23,9 @@ Tokens :-
   "..."         { \p s -> TokenListSeries p }
   \@            { \p s -> TokenListGetElement p }
 
-  \+            { \p s -> TokenSymAdd p }
-  \-            { \p s -> TokenSymMinus p }
-  \*            { \p s -> TokenSymMultiply p }
-  \/            { \p s -> TokenSymDivide p }
-  \%            { \p s -> TokenSymModulo p }
-  \^            { \p s -> TokenSymExponent p }
-  \&            { \p s -> TokenSymAnd p }
-  \|            { \p s -> TokenSymOr p }
-  \<            { \p s -> TokenSymLessThan p }
-  \>            { \p s -> TokenSymGreaterThan p }
+  [\+\-\*\/\%\^\&\|\<\>]|==|\<=|\>=|!= { \p s -> TokenOperator s p }
   \!            { \p s -> TokenSymNot p }
 
-  "=="          { \p s -> TokenOpEquals p }
   "++"          { \p s -> TokenOpIncrement p }
   "--"          { \p s -> TokenOpDecrement p }
   "+="          { \p s -> TokenOpAddition p }
@@ -84,18 +74,8 @@ data Token =
   TokenListEnd AlexPosn |
   TokenListSeries AlexPosn |
   TokenListGetElement AlexPosn |
-  TokenSymAdd AlexPosn |
-  TokenSymMinus AlexPosn |
-  TokenSymMultiply AlexPosn |
-  TokenSymDivide AlexPosn |
-  TokenSymModulo AlexPosn |
-  TokenSymExponent AlexPosn |
-  TokenSymAnd AlexPosn |
-  TokenSymOr AlexPosn |
-  TokenSymLessThan AlexPosn |
-  TokenSymGreaterThan AlexPosn |
+  TokenOperator String AlexPosn |
   TokenSymNot AlexPosn |
-  TokenOpEquals AlexPosn |
   TokenOpIncrement AlexPosn |
   TokenOpDecrement AlexPosn |
   TokenOpAddition AlexPosn |
@@ -139,18 +119,8 @@ tokenPosn (TokenListStart (AlexPn a l c) )             = ("Line: " ++ show l ++ 
 tokenPosn (TokenListEnd (AlexPn a l c) )               = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenListSeries (AlexPn a l c) )            = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenListGetElement (AlexPn a l c) )        = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
-tokenPosn (TokenSymAdd (AlexPn a l c) )                = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
-tokenPosn (TokenSymMinus (AlexPn a l c) )              = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
-tokenPosn (TokenSymMultiply (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
-tokenPosn (TokenSymDivide (AlexPn a l c) )             = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
-tokenPosn (TokenSymModulo (AlexPn a l c) )             = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
-tokenPosn (TokenSymExponent (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
-tokenPosn (TokenSymAnd (AlexPn a l c) )                = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
-tokenPosn (TokenSymOr (AlexPn a l c) )                 = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
-tokenPosn (TokenSymLessThan (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
-tokenPosn (TokenSymGreaterThan (AlexPn a l c) )        = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenOperator s (AlexPn a l c) )                = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenSymNot (AlexPn a l c))                 = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
-tokenPosn (TokenOpEquals (AlexPn a l c) )              = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenOpIncrement (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenOpDecrement (AlexPn a l c) )           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenOpAddition (AlexPn a l c) )            = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
