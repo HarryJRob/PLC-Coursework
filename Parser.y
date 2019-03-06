@@ -11,6 +11,7 @@ import Lexer
     Char      { TokenTypeChar p }
     Int       { TokenTypeInt p }
     Bool      { TokenTypeBoolean p }
+
     '['       { TokenListStart p }
     ']'       { TokenListEnd p }
     "..."     { TokenListSeries p }
@@ -51,9 +52,9 @@ import Lexer
     "::"      { TokenTypeDeclaration p }
     "->"      { TokenFuncTransition p }
     loop      { TokenKeywordLoop p }
-    if      { TokenKeywordIf p }
-    then    { TokenKeywordThen p }
-    else    { TokenKeywordElse p }
+    if        { TokenKeywordIf p }
+    then      { TokenKeywordThen p }
+    else      { TokenKeywordElse p }
     func      { TokenKeywordFunc p }
     "return"  { TokenKeywordReturn p }
     "print"   { TokenKeywordPrint p }
@@ -78,9 +79,19 @@ Exp : var "::" '(' TypeList ')' "->" Type                         { FuncTypeDecl
     | if '(' Value ')' then '{' ExpList '}' else '{' ExpList '}'  { IfElseStatement $3 $7 $11 }
     | if '(' Value ')' then '{' ExpList '}'                       { IfStatement $3 $7 }
     | loop '(' ExpList ',' Value ')' '{' ExpList '}'              { LoopStatement $3 $5 $8 }
+    | "return" Value                                                { ReturnStatement $2 }
+    | "print" Value                                                 { PrintStatement $2 }
     | Type var '=' Value                                          { NewAssignment $1 $2 $4 }
     | var '=' Value                                               { ReAssignment $1 $3 }
 
+    | var "++"                                                    { VarOpIncrement $1 }
+    | var "--"                                                    { VarOpDecrement $1 }
+    | var "+=" Value                                              { VarOpAddition $1 $3 }
+    | var "-=" Value                                              { VarOpMinus $1 $3 }
+    | var "*=" Value                                              { VarOpMultiply $1 $3 }
+    | var "/=" Value                                              { VarOpDivide $1 $3 }
+    | var "%=" Value                                              { VarOpModulo $1 $3 }
+    | var "^=" Value                                              { VarOpExponent $1 $3 }
 
 Value : Value '+' Value             { ArithmeticAdd $1 $3 }
       | Value '-' Value             { ArithmeticMinus $1 $3 }
@@ -100,6 +111,9 @@ Value : Value '+' Value             { ArithmeticAdd $1 $3 }
 
       | '!' Value                   { Not $2 }
       | var '(' ValueList ')'       { FunctionCall $1 $3 }
+      | '[' ValueList ']'           { List $2 }
+      | '[' ValueList "..." ']'         { Series $2 }
+      | Value '@' Value             { ListGetElement $1 $3}
       | var                         { VariableValue $1 }
       | str                         { StringValue $1 }
       | int                         { IntValue $1 }
@@ -135,8 +149,20 @@ data Exp = FuncTypeDeclaration String TypeList Type
          | IfElseStatement Value ExpList ExpList
          | IfStatement Value ExpList
          | LoopStatement ExpList Value ExpList
+         | ReturnStatement Value
+         | PrintStatement Value
+
          | NewAssignment Type String Value
          | ReAssignment String Value
+
+         | VarOpIncrement String
+         | VarOpDecrement String
+         | VarOpAddition String Value
+         | VarOpMinus String Value
+         | VarOpMultiply String Value
+         | VarOpDivide String Value
+         | VarOpModulo String Value
+         | VarOpExponent String Value
          deriving Show
 
 data Value = ArithmeticAdd Value Value
@@ -157,6 +183,9 @@ data Value = ArithmeticAdd Value Value
            | Not Value
 
            | FunctionCall String ValueList
+           | List ValueList
+           | Series ValueList
+           | ListGetElement Value Value
            | VariableValue String
            | StringValue String
            | IntValue Int
