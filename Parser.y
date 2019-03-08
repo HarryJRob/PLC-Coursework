@@ -68,7 +68,8 @@ import Lexer
 %right in
 
 %nonassoc '&' '|' '<' '>' "==" "<=" ">=" "!="
-
+%nonassoc '!'
+%right '@'
 %left '+' '-'
 %left '*' '/' '%'
 %left '^'
@@ -79,8 +80,8 @@ Exp : var "::" '(' TypeList ')' "->" Type                         { FuncTypeDecl
     | if '(' Value ')' then '{' ExpList '}' else '{' ExpList '}'  { IfElseStatement $3 $7 $11 }
     | if '(' Value ')' then '{' ExpList '}'                       { IfStatement $3 $7 }
     | loop '(' ExpList ',' Value ')' '{' ExpList '}'              { LoopStatement $3 $5 $8 }
-    | "return" Value                                                { ReturnStatement $2 }
-    | "print" Value                                                 { PrintStatement $2 }
+    | "return" Value                                              { ReturnStatement $2 }
+    | "print" Value                                               { PrintStatement $2 }
     | Type var '=' Value                                          { NewAssignment $1 $2 $4 }
     | var '=' Value                                               { ReAssignment $1 $3 }
 
@@ -112,7 +113,7 @@ Value : Value '+' Value             { ArithmeticAdd $1 $3 }
       | '!' Value                   { Not $2 }
       | var '(' ValueList ')'       { FunctionCall $1 $3 }
       | '[' ValueList ']'           { List $2 }
-      | '[' ValueList "..." ']'         { Series $2 }
+      | '[' ValueList "..." ']'     { Series $2 }
       | Value '@' Value             { ListGetElement $1 $3}
       | var                         { VariableValue $1 }
       | str                         { StringValue $1 }
