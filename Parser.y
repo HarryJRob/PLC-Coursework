@@ -74,12 +74,13 @@ import Lexer
 %left '*' '/' '%'
 %left '^'
 
+%right ';'
 %%
 Exp : var "::" '(' TypeList ')' "->" Type                         { FuncTypeDeclaration $1 $4 $7 }
-    | func var '(' VarList ')' '{' ExpList '}'                    { FuncDeclaration $2 $4 $7 }
-    | if '(' Value ')' then '{' ExpList '}' else '{' ExpList '}'  { IfElseStatement $3 $7 $11 }
-    | if '(' Value ')' then '{' ExpList '}'                       { IfStatement $3 $7 }
-    | loop '(' ExpList ',' Value ')' '{' ExpList '}'              { LoopStatement $3 $5 $8 }
+    | func var '(' VarList ')' '{' Exp '}'                        { FuncDeclaration $2 $4 $7 }
+    | if '(' Value ')' then '{' Exp '}' else '{' Exp '}'          { IfElseStatement $3 $7 $11 }
+    | if '(' Value ')' then '{' Exp '}'                           { IfStatement $3 $7 }
+    | loop '(' Exp ',' Value ')' '{' Exp '}'                      { LoopStatement $3 $5 $8 }
     | "return" Value                                              { ReturnStatement $2 }
     | "print" Value                                               { PrintStatement $2 }
     | Type var '=' Value                                          { NewAssignment $1 $2 $4 }
@@ -93,6 +94,8 @@ Exp : var "::" '(' TypeList ')' "->" Type                         { FuncTypeDecl
     | var "/=" Value                                              { VarOpDivide $1 $3 }
     | var "%=" Value                                              { VarOpModulo $1 $3 }
     | var "^=" Value                                              { VarOpExponent $1 $3 }
+
+    | Exp ';' Exp                                                 { ExpList $1 $3 }
 
 Value : Value '+' Value             { ArithmeticAdd $1 $3 }
       | Value '-' Value             { ArithmeticMinus $1 $3 }
@@ -129,10 +132,6 @@ ValueList : Value ',' ValueList     { ValueList $1 $3 }
 VarList : var ',' VarList           { VarList $1 $3 }
         | var                       { Var $1 }
 
-ExpList : Exp ExpList               { ExpList $1 $2 }
-        | Exp ';' ExpList           { ExpList $1 $3 }
-        | Exp                       { Exp $1 }
-
 TypeList : Type ',' TypeList        { TypeList $1 $3 }
          | Type                     { Type $1 }
 
@@ -146,10 +145,10 @@ parseError :: [Token] -> a
 parseError (t:ts) = error ("Parse error at: " ++ tokenPosn t)
 
 data Exp = FuncTypeDeclaration String TypeList Type
-         | FuncDeclaration String VarList ExpList
-         | IfElseStatement Value ExpList ExpList
-         | IfStatement Value ExpList
-         | LoopStatement ExpList Value ExpList
+         | FuncDeclaration String VarList Exp
+         | IfElseStatement Value Exp Exp
+         | IfStatement Value Exp
+         | LoopStatement Exp Value Exp
          | ReturnStatement Value
          | PrintStatement Value
 
@@ -164,7 +163,10 @@ data Exp = FuncTypeDeclaration String TypeList Type
          | VarOpDivide String Value
          | VarOpModulo String Value
          | VarOpExponent String Value
-         deriving Show
+
+         | ExpList Exp Exp
+         | Val Value
+         deriving (Show, Eq)
 
 data Value = ArithmeticAdd Value Value
            | ArithmeticMinus Value Value
@@ -193,28 +195,24 @@ data Value = ArithmeticAdd Value Value
            | CharValue Char
            | TrueValue
            | FalseValue
-           deriving Show
+           deriving (Show, Eq)
 
 data ValueList = ValueList Value ValueList
                | Value Value
-               deriving Show
+               deriving (Show, Eq)
 
 data VarList = VarList String VarList
              | Var String
-             deriving Show
+             deriving (Show, Eq)
 
 data TypeList = TypeList Type TypeList
               | Type Type
-              deriving Show
-
-data ExpList = ExpList Exp ExpList
-             | Exp Exp
-             deriving Show
+              deriving (Show, Eq)
 
 data Type = TypeString
           | TypeChar
           | TypeInt
           | TypeBool
-          deriving Show
+          deriving (Show, Eq)
 
 }
