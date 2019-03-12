@@ -77,7 +77,7 @@ import Lexer
 %right ';'
 %%
 Exp : var "::" '(' TypeList ')' "->" Type                         { FuncTypeDeclaration $1 $4 $7 }
-    | func var '(' VarList ')' '{' Exp '}'                        { FuncDeclaration $2 $4 $7 }
+    | func var '(' VarList ')' '{' Exp '}'                      { FuncDeclaration $2 $4 $7 }
     | if '(' Value ')' then '{' Exp '}' else '{' Exp '}'          { IfElseStatement $3 $7 $11 }
     | if '(' Value ')' then '{' Exp '}'                           { IfStatement $3 $7 }
     | loop '(' Exp ',' Value ')' '{' Exp '}'                      { LoopStatement $3 $5 $8 }
@@ -96,7 +96,6 @@ Exp : var "::" '(' TypeList ')' "->" Type                         { FuncTypeDecl
     | var "^=" Value                                              { VarOpExponent $1 $3 }
 
     | Exp ';' Exp                                                 { ExpList $1 $3 }
-    | Type ',' Type                                               { TypeList $1 $3 }
 
 Value : Value '+' Value             { ArithmeticAdd $1 $3 }
       | Value '-' Value             { ArithmeticMinus $1 $3 }
@@ -133,6 +132,9 @@ ValueList : Value ',' ValueList     { ValueList $1 $3 }
 VarList : var ',' VarList           { VarList $1 $3 }
         | var                       { Var $1 }
 
+TypeList : Type ',' TypeList        { TypeList $1 $3 }
+         | Type                     { Type $1 }
+
 Type : String                       { TypeString }
      | Char                         { TypeChar }
      | Int                          { TypeInt }
@@ -163,9 +165,9 @@ data Exp = FuncTypeDeclaration String TypeList Type
          | VarOpExponent String Value
 
          | ExpList Exp Exp
-         | TypeList Exp Exp
          | Val Value
-         | Typ Type
+         | ValList ValueList
+         | VarListWrapper VarList
          deriving (Show, Eq)
 
 data Value = ArithmeticAdd Value Value
@@ -195,6 +197,7 @@ data Value = ArithmeticAdd Value Value
            | CharValue Char
            | TrueValue
            | FalseValue
+           | NullValue
            deriving (Show, Eq)
 
 data ValueList = ValueList Value ValueList

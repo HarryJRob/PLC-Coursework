@@ -1726,6 +1726,8 @@ data Exp = FuncTypeDeclaration String TypeList Type
 
          | ExpList Exp Exp
          | Val Value
+         | ValList ValueList
+         | VarListWrapper VarList
          deriving (Show, Eq)
 
 data Value = ArithmeticAdd Value Value
@@ -1755,6 +1757,7 @@ data Value = ArithmeticAdd Value Value
            | CharValue Char
            | TrueValue
            | FalseValue
+           | NullValue
            deriving (Show, Eq)
 
 data ValueList = ValueList Value ValueList
