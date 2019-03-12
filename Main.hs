@@ -7,6 +7,11 @@ data Frame = HNewAssignment Type String Environment
            | HReAssignment String Environment
            | HExpList Exp
            | HPrintStatement
+           | HIfStatement Exp
+           | HIfElseStatement Exp Exp
+           | HReturnStatement
+           | HArithmeticAdd Exp
+           | ArithmeticAddH Exp
            deriving (Show, Eq)
 
 type Kontinuation = [ Frame ]
@@ -50,36 +55,37 @@ evalExp ((NewAssignment t s e1), env, k)                    = return ((Val e1), 
 evalExp (v, env1, (HNewAssignment t s env2):k) | isValue v  = return (v,(s,v):env2,k)
 
 evalExp ((ReAssignment s e1), env, k)                       = return ((Val e1), env, (HReAssignment s env):k)
-evalExp (v, env1, (HReAssignment s env2):k) | isValue v     = return (v,(s,v):env2,k)
+evalExp (v, env1, (HReAssignment s env2):k) | isValue v     = return (v,(s,v):env2,k) -- Needs reworking
 
 evalExp ((PrintStatement e1), env, k)                       = return ((Val e1), env, (HPrintStatement):k)
 evalExp (v, env, (HPrintStatement):k) | isValue v           = (print $ showValue v) >> return (v, env, k)
 
+evalExp ((IfStatement e1 e2), env, k)                       = return ((Val e1), env, (HIfStatement e2):k)
+evalExp (v, env, (HIfStatement e1):k) | isValue v           = if v == (Val (TrueValue)) then return (e1, env, k) else return (v, env, k)
 
+evalExp ((IfElseStatement e1 e2 e3), env, k)                = return ((Val e1), env, (HIfElseStatement e2 e3):k)
+evalExp (v, env, (HIfElseStatement e1 e2):k)                = if v == (Val (TrueValue)) then return (e1, env, k) else return (e2, env, k)
+
+evalExp ((ReturnStatement e1), env, k)                      = return ((Val e1), env, (HReturnStatement):k)
+evalExp (v, env, (HReturnStatement):k) | isValue v          = return (v, [], [])
+
+evalExp ((Val (ArithmeticAdd e1 e2)), env, k)                     = return ((Val e1), env, (HArithmeticAdd (Val e2)):k)
+evalExp (v, env, (HArithmeticAdd e2):k) | isValue v         = return (e2, env, (ArithmeticAddH v):k)
+evalExp (v@(Val (IntValue e1)), env, (ArithmeticAddH (Val (IntValue e2))):k)| isValue v   = return ((Val (IntValue (e1 + e2))), env, k)
+
+evalProgram :: Exp -> IO State
+evalProgram e = do
+              s <- evalLoop $ return (e, [], [])
+              return s
 
 evalLoop :: IO State -> IO State
 evalLoop state = do
                 s1@(c , e, k) <- state
                 s2@(c', e', k') <- evalExp s1
-
                 if (isValue c && c' == c && length k == 0)
                   then return s2
                   else do
                     s3 <- evalLoop $ return s2
                     return s3
-
-
--- evalLoop e = evalLoop' (e,[],[])
---   where evalLoop' (e,env,k) = do
---                         if (e' == e) && (isValue e') && length k == 0 then
---                            return e'
---                            else
---                              return evalLoop' $ evalExp (e, env, k)
-
--- evalLoop :: Exp -> Exp
--- evalLoop e = evalLoop' (e,[],[])
---  where evalLoop' (e,env,k) = if (e' == e) && (isValue e') && length k == 0 then e' else evalLoop' (e',env',k')
---                       where (e',env',k') = evalExp (e,env,k)
-
 
 parse = parseCalc . alexScanTokens
