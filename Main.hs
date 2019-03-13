@@ -3,12 +3,14 @@ import Parser
 
 type Environment = [ (String, Exp) ]
 
-data Frame = HNewAssignment Type String Environment
-           | HReAssignment String Environment
+data Frame = HNewAssignment Type String
+           | HReAssignment String
            | HExpList Exp
            | HPrintStatement
            | HIfStatement Exp
            | HIfElseStatement Exp Exp
+           | HLoopStatement Value Exp Environment
+           | LoopStatementH Value Exp Environment
            | HReturnStatement
 
            | HArithmeticAdd Exp
@@ -49,7 +51,7 @@ type Kontinuation = [ Frame ]
 type State = (Exp, Environment, Kontinuation)
 
 getValueBinding :: String -> Environment -> Exp
-getValueBinding x [] = error "No variable bindings exist"
+getValueBinding x [] = error ("No variable bindings for \"" ++ x ++ "\" exists")
 getValueBinding x ((y,e):env) | x == y    = e
                               | otherwise = getValueBinding x env
 
@@ -58,19 +60,34 @@ isValueBound x [] = False
 isValueBound x ((y,e):env) | x == y     = True
                            | otherwise  = isValueBound x env
 
+replaceValueBinding :: (String, Exp) -> Environment -> Environment
+replaceValueBinding (s,e) [] = error ("No variable bindings for \"" ++ s ++ "\" exists")
+replaceValueBinding (s1,e1) ((s2,e2):env)
+  | s1 == s2                 = (s1,e1):env
+  | otherwise                = (s2,e2):(replaceValueBinding (s1,e1) env)
+
 -- Needs correction
 createFunctionBindings :: VarList -> ValueList -> Environment
 createFunctionBindings (Var s) (Value e1)               = (s, (Val e1)):[]
 createFunctionBindings (VarList s e1) (ValueList e2 e3) = (s, (Val e2)):(createFunctionBindings e1 e3)
-createFunctionBindings _ _                                                = error "Number of parameters to function do not match declaration"
+createFunctionBindings _ _                              = error "Number of parameters to function do not match declaration"
+
+updateEnvironment :: Environment -> Environment -> Environment
+updateEnvironment [] env2             = env2
+updateEnvironment ((s,e):env1) env2 = if isValueBound s env2 then updateEnvironment env1 (replaceValueBinding (s,e) env2) else updateEnvironment env1 env2
+
+
+showValueList :: ValueList -> String
+showValueList (Value e1)        = showValue (Val e1)
+showValueList (ValueList e1 e2) = showValue (Val e1) ++ "," ++ showValueList e2
 
 showValue :: Exp -> String
-showValue (Val (List a))          = "not implemented yet"
-showValue (Val (Series b))        = "not implemented yet"
-showValue (Val (VariableValue c)) = show c
-showValue (Val (StringValue d))   = show d
-showValue (Val (IntValue e))      = show e
-showValue (Val (CharValue f))     = show f
+showValue (Val (List a))          = "[" ++ showValueList a ++ "]"
+showValue (Val (Series a))        = "[" ++ showValueList a ++ "...]"
+showValue (Val (VariableValue a)) = show a
+showValue (Val (StringValue a))   = show a
+showValue (Val (IntValue a))      = show a
+showValue (Val (CharValue a))     = show a
 showValue (Val (TrueValue))       = "true"
 showValue (Val (FalseValue))      = "false"
 showValue (Val (NullValue))       = "null"
@@ -95,26 +112,30 @@ evalExp (Val (VariableValue v), env, k)                     = return (getValueBi
 evalExp ((ExpList e1 e2), env, k)                           = return (e1, env, (HExpList e2):k)
 evalExp (v, env1, (HExpList e2):k) | isValue v              = return (e2, env1, k)
 
-evalExp ((NewAssignment t s e1), env, k)                    = return ((Val e1), env, (HNewAssignment t s env):k)
-evalExp (v, env1, (HNewAssignment t s env2):k) | isValue v  = return (v,(s,v):env2,k)
+evalExp ((NewAssignment t s e1), env, k)                    = return ((Val e1), env, (HNewAssignment t s):k)
+evalExp (v, env, (HNewAssignment t s):k) | isValue v        = return (v,(s,v):env,k)
 
-evalExp ((ReAssignment s e1), env, k)                       = return ((Val e1), env, (HReAssignment s env):k)
-evalExp (v, env1, (HReAssignment s env2):k) | isValue v     = return (v,(s,v):env2,k) -- Needs reworking
+evalExp ((ReAssignment s e1), env, k)                       = return ((Val e1), env, (HReAssignment s):k)
+evalExp (v, env, (HReAssignment s):k) | isValue v           = return (v, replaceValueBinding (s,v) env,k) -- Needs reworking
 
 evalExp ((PrintStatement e1), env, k)                       = return ((Val e1), env, (HPrintStatement):k)
 evalExp (v, env, (HPrintStatement):k) | isValue v           = (print $ showValue v) >> return (v, env, k)
 
 evalExp ((IfStatement e1 e2), env, k)                       = return ((Val e1), env, (HIfStatement e2):k)
-evalExp (v, env, (HIfStatement e1):k) | isValue v           = if v == (Val (TrueValue)) then return (e1, env, k) else return (v, env, k)
+evalExp (v, env, (HIfStatement e1):k) | isValue v           = if v == (Val TrueValue) then return (e1, env, k) else return (v, env, k)
 
 evalExp ((IfElseStatement e1 e2 e3), env, k)                = return ((Val e1), env, (HIfElseStatement e2 e3):k)
-evalExp (v, env, (HIfElseStatement e1 e2):k)                = if v == (Val (TrueValue)) then return (e1, env, k) else return (e2, env, k)
+evalExp (v, env, (HIfElseStatement e1 e2):k)                = if v == (Val TrueValue) then return (e1, env, k) else return (e2, env, k)
+
+evalExp ((LoopStatement e1 e2 e3), env, k)                  = return (e1, env, (HLoopStatement e2 e3 env):k)
+evalExp (v, env1, (HLoopStatement e1 e2 env2):k) | isValue v = return ((Val e1), env1, (LoopStatementH e1 e2 env2):k)
+evalExp (v, env1, (LoopStatementH e1 e2 env2):k) | isValue v = if v == (Val TrueValue) then return (v, updateEnvironment env1 env2, k) else return (e2, env1, (HLoopStatement e1 e2 env2):k)
 
 evalExp ((FuncTypeDeclaration e1 e2 e3), env, k)            = if isValueBound e1 env then error ("Duplicate bindings for function: " ++ e1) else return ((Val (NullValue)), (e1,(Val (NullValue))):env, k)
 
 evalExp ((FuncDeclaration e1 e2 e3), env, k)                = if isValueBound e1 env then return ((Val (NullValue)), (e1, (ExpList (VarListWrapper e2) e3)):[ x | x@(s,e) <- env, s /= e1], k) else error ("Function binding not found for: " ++ e1)
 
--- Need to check that all values passed to function are valid and return original env and returning a value need implementing
+-- TODO: Need to check that all values passed to function are valid and return original env and returning a value need implementing
 evalExp ((Val (FunctionCall e1 e2)), env, k)                = if (all (==True) [True]) && (getValueBinding e1 env /= (Val (NullValue)))
                                                                 then return (body, createFunctionBindings vars e2, (HFunctionCall env):k)
                                                                 else error ("Invalid function call" ++ e1)
@@ -122,7 +143,7 @@ evalExp ((Val (FunctionCall e1 e2)), env, k)                = if (all (==True) [
                                                                     (ExpList (VarListWrapper vars) body) = getValueBinding e1 env
 
 
--- Broken af help
+-- TODO: Broken af help
 evalExp ((ReturnStatement e1), env, k)                      = return ((Val e1), env, (HReturnStatement):k)
 evalExp (v, env, (HReturnStatement):k) | isValue v          = return (v, env, [])
 
@@ -161,7 +182,7 @@ evalExp ((Val (BooleanOr e1 e2)), env, k)               = return ((Val e1), env,
 evalExp (v, env, (HBooleanOr e2):k) | isValue v         = return (e2, env, (BooleanOrH v):k)
 evalExp (v@(Val e1), env, (BooleanOrH (Val e2)):k) | isValue v         = if (e1 == TrueValue || e2 == TrueValue) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
 
--- Need list comparison
+-- TODO: Need list comparison
 evalExp ((Val (BooleanEQ e1 e2)), env, k)               = return ((Val e1), env, (HBooleanEQ (Val e2)):k)
 evalExp (v, env, (HBooleanEQ e2):k) | isValue v         = return (e2, env, (BooleanEQH v):k)
 evalExp (v@(Val (IntValue e1)), env, (BooleanEQH (Val (IntValue e2))):k) | isValue v         = if (e1 == e2 ) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
@@ -196,6 +217,8 @@ evalExp ((Val (Not e1)), env, k)                           = return ((Val e1), e
 evalExp ((Val TrueValue), env, (HNot):k)                   = return ((Val FalseValue), env, k)
 evalExp ((Val FalseValue), env, (HNot):k)                  = return ((Val TrueValue), env, k)
 
+evalFull :: String -> IO State
+evalFull = evalProgram . parse
 
 evalProgram :: Exp -> IO State
 evalProgram e = do
