@@ -1239,7 +1239,7 @@ happyReduce_10 = happySpecReduce_2  4 happyReduction_10
 happyReduction_10 _
 	(HappyTerminal (TokenVariable p happy_var_1))
 	 =  HappyAbsSyn4
-		 (VarOpIncrement happy_var_1
+		 (ReAssignment happy_var_1 (ArithmeticAdd (VariableValue happy_var_1) (IntValue 1))
 	)
 happyReduction_10 _ _  = notHappyAtAll 
 
@@ -1247,7 +1247,7 @@ happyReduce_11 = happySpecReduce_2  4 happyReduction_11
 happyReduction_11 _
 	(HappyTerminal (TokenVariable p happy_var_1))
 	 =  HappyAbsSyn4
-		 (VarOpDecrement happy_var_1
+		 (ReAssignment happy_var_1 (ArithmeticMinus (VariableValue happy_var_1) (IntValue 1))
 	)
 happyReduction_11 _ _  = notHappyAtAll 
 
@@ -1256,7 +1256,7 @@ happyReduction_12 (HappyAbsSyn5  happy_var_3)
 	_
 	(HappyTerminal (TokenVariable p happy_var_1))
 	 =  HappyAbsSyn4
-		 (VarOpAddition happy_var_1 happy_var_3
+		 (ReAssignment happy_var_1 (ArithmeticAdd (VariableValue happy_var_1) happy_var_3)
 	)
 happyReduction_12 _ _ _  = notHappyAtAll 
 
@@ -1265,7 +1265,7 @@ happyReduction_13 (HappyAbsSyn5  happy_var_3)
 	_
 	(HappyTerminal (TokenVariable p happy_var_1))
 	 =  HappyAbsSyn4
-		 (VarOpMinus happy_var_1 happy_var_3
+		 (ReAssignment happy_var_1 (ArithmeticMinus (VariableValue happy_var_1) happy_var_3)
 	)
 happyReduction_13 _ _ _  = notHappyAtAll 
 
@@ -1274,7 +1274,7 @@ happyReduction_14 (HappyAbsSyn5  happy_var_3)
 	_
 	(HappyTerminal (TokenVariable p happy_var_1))
 	 =  HappyAbsSyn4
-		 (VarOpMultiply happy_var_1 happy_var_3
+		 (ReAssignment happy_var_1 (ArithmeticMultiply (VariableValue happy_var_1) happy_var_3)
 	)
 happyReduction_14 _ _ _  = notHappyAtAll 
 
@@ -1283,7 +1283,7 @@ happyReduction_15 (HappyAbsSyn5  happy_var_3)
 	_
 	(HappyTerminal (TokenVariable p happy_var_1))
 	 =  HappyAbsSyn4
-		 (VarOpDivide happy_var_1 happy_var_3
+		 (ReAssignment happy_var_1 (ArithmeticDivide (VariableValue happy_var_1) happy_var_3)
 	)
 happyReduction_15 _ _ _  = notHappyAtAll 
 
@@ -1292,7 +1292,7 @@ happyReduction_16 (HappyAbsSyn5  happy_var_3)
 	_
 	(HappyTerminal (TokenVariable p happy_var_1))
 	 =  HappyAbsSyn4
-		 (VarOpModulo happy_var_1 happy_var_3
+		 (ReAssignment happy_var_1 (ArithmeticModulo (VariableValue happy_var_1) happy_var_3)
 	)
 happyReduction_16 _ _ _  = notHappyAtAll 
 
@@ -1301,7 +1301,7 @@ happyReduction_17 (HappyAbsSyn5  happy_var_3)
 	_
 	(HappyTerminal (TokenVariable p happy_var_1))
 	 =  HappyAbsSyn4
-		 (VarOpExponent happy_var_1 happy_var_3
+		 (ReAssignment happy_var_1 (ArithmeticExponent (VariableValue happy_var_1) happy_var_3)
 	)
 happyReduction_17 _ _ _  = notHappyAtAll 
 
@@ -1714,15 +1714,6 @@ data Exp = FuncTypeDeclaration String TypeList Type
 
          | NewAssignment Type String Value
          | ReAssignment String Value
-
-         | VarOpIncrement String
-         | VarOpDecrement String
-         | VarOpAddition String Value
-         | VarOpMinus String Value
-         | VarOpMultiply String Value
-         | VarOpDivide String Value
-         | VarOpModulo String Value
-         | VarOpExponent String Value
 
          | ExpList Exp Exp
          | Val Value

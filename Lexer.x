@@ -71,8 +71,8 @@ Tokens :-
   [f F]alse     { \p s -> TokenBoolFalse p }
   \".*\"        { \p s -> TokenString p s }
   \'.\'         { \p (_:c:_) -> TokenChar p c }
+  \-$digit+     { \p s -> TokenInteger p (read s) }
   $digit+       { \p s -> TokenInteger p (read s) }
-  \- $digit+    { \p s -> TokenInteger p (read s) }
   $alpha[$alpha $digit]* { \p s -> TokenVariable p s }
 
 {

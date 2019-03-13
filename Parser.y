@@ -77,7 +77,7 @@ import Lexer
 %right ';'
 %%
 Exp : var "::" '(' TypeList ')' "->" Type                         { FuncTypeDeclaration $1 $4 $7 }
-    | func var '(' VarList ')' '{' Exp '}'                      { FuncDeclaration $2 $4 $7 }
+    | func var '(' VarList ')' '{' Exp '}'                        { FuncDeclaration $2 $4 $7 }
     | if '(' Value ')' then '{' Exp '}' else '{' Exp '}'          { IfElseStatement $3 $7 $11 }
     | if '(' Value ')' then '{' Exp '}'                           { IfStatement $3 $7 }
     | loop '(' Exp ',' Value ')' '{' Exp '}'                      { LoopStatement $3 $5 $8 }
@@ -86,14 +86,14 @@ Exp : var "::" '(' TypeList ')' "->" Type                         { FuncTypeDecl
     | Type var '=' Value                                          { NewAssignment $1 $2 $4 }
     | var '=' Value                                               { ReAssignment $1 $3 }
 
-    | var "++"                                                    { VarOpIncrement $1 }
-    | var "--"                                                    { VarOpDecrement $1 }
-    | var "+=" Value                                              { VarOpAddition $1 $3 }
-    | var "-=" Value                                              { VarOpMinus $1 $3 }
-    | var "*=" Value                                              { VarOpMultiply $1 $3 }
-    | var "/=" Value                                              { VarOpDivide $1 $3 }
-    | var "%=" Value                                              { VarOpModulo $1 $3 }
-    | var "^=" Value                                              { VarOpExponent $1 $3 }
+    | var "++"                                                    { ReAssignment $1 (ArithmeticAdd (VariableValue $1) (IntValue 1)) }
+    | var "--"                                                    { ReAssignment $1 (ArithmeticMinus (VariableValue $1) (IntValue 1)) }
+    | var "+=" Value                                              { ReAssignment $1 (ArithmeticAdd (VariableValue $1) $3) }
+    | var "-=" Value                                              { ReAssignment $1 (ArithmeticMinus (VariableValue $1) $3) }
+    | var "*=" Value                                              { ReAssignment $1 (ArithmeticMultiply (VariableValue $1) $3) }
+    | var "/=" Value                                              { ReAssignment $1 (ArithmeticDivide (VariableValue $1) $3) }
+    | var "%=" Value                                              { ReAssignment $1 (ArithmeticModulo (VariableValue $1) $3) }
+    | var "^=" Value                                              { ReAssignment $1 (ArithmeticExponent (VariableValue $1) $3) }
 
     | Exp ';' Exp                                                 { ExpList $1 $3 }
 
@@ -106,9 +106,9 @@ Value : Value '+' Value             { ArithmeticAdd $1 $3 }
 
       | Value '&' Value             { BooleanAnd $1 $3 }
       | Value '|' Value             { BooleanOr $1 $3 }
+      | Value "==" Value            { BooleanEQ $1 $3 }
       | Value '<' Value             { BooleanLT $1 $3 }
       | Value '>' Value             { BooleanGT $1 $3 }
-      | Value "==" Value            { BooleanEQ $1 $3 }
       | Value "<=" Value            { BooleanLTEQ $1 $3 }
       | Value ">=" Value            { BooleanGTEQ $1 $3 }
       | Value "!=" Value            { BooleanNEQ $1 $3 }
@@ -154,15 +154,6 @@ data Exp = FuncTypeDeclaration String TypeList Type
 
          | NewAssignment Type String Value
          | ReAssignment String Value
-
-         | VarOpIncrement String
-         | VarOpDecrement String
-         | VarOpAddition String Value
-         | VarOpMinus String Value
-         | VarOpMultiply String Value
-         | VarOpDivide String Value
-         | VarOpModulo String Value
-         | VarOpExponent String Value
 
          | ExpList Exp Exp
          | Val Value
