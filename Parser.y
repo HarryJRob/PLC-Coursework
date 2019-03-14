@@ -67,7 +67,8 @@ import Lexer
 
 %right in
 
-%nonassoc '&' '|' '<' '>' "==" "<=" ">=" "!="
+%nonassoc '&' '|'
+%nonassoc '<' '>' "==" "<=" ">=" "!="
 %nonassoc '!'
 %right '@'
 %left '+' '-'
