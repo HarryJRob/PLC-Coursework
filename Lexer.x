@@ -66,6 +66,8 @@ Tokens :-
   func          { \p s -> TokenKeywordFunc p }
   return        { \p s -> TokenKeywordReturn p }
   print         { \p s -> TokenKeywordPrint p }
+  leng          { \p s -> TokenKeywordLength p }
+  app           { \p s -> TokenKeywordAppend p }
 
   [t T]rue      { \p s -> TokenBoolTrue p }
   [f F]alse     { \p s -> TokenBoolFalse p }
@@ -125,6 +127,7 @@ data Token =
   TokenBracketClose AlexPosn |
   TokenTypeDeclaration AlexPosn |
   TokenFuncTransition AlexPosn |
+
   TokenKeywordLoop AlexPosn |
   TokenKeywordIf AlexPosn |
   TokenKeywordThen AlexPosn |
@@ -132,6 +135,9 @@ data Token =
   TokenKeywordFunc AlexPosn |
   TokenKeywordReturn AlexPosn |
   TokenKeywordPrint AlexPosn |
+  TokenKeywordLength AlexPosn |
+  TokenKeywordAppend AlexPosn |
+
   TokenVariable AlexPosn String |
   TokenString AlexPosn String |
   TokenChar AlexPosn Char |
@@ -199,6 +205,8 @@ tokenPosn (TokenKeywordElse (AlexPn a l c) )                 = ("Line: " ++ show
 tokenPosn (TokenKeywordFunc (AlexPn a l c) )                 = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenKeywordReturn (AlexPn a l c) )               = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenKeywordPrint (AlexPn a l c) )                = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenKeywordLength (AlexPn a l c))                = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenKeywordAppend (AlexPn a l c))                = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 
 tokenPosn (TokenVariable (AlexPn a l c) s )                  = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenString (AlexPn a l c) s )                    = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )

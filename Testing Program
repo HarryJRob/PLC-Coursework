@@ -1,0 +1,15 @@
+
+leng :: ([Int]) -> Int
+
+func leng(xs) {
+
+  loop(Int y = 0; false) {
+
+    if ( xs@y != null ) then {
+      return y-1;
+    } else {
+      y++;
+    }
+  }
+
+}

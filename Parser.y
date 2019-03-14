@@ -58,6 +58,8 @@ import Lexer
     func      { TokenKeywordFunc p }
     "return"  { TokenKeywordReturn p }
     "print"   { TokenKeywordPrint p }
+    "leng"    { TokenKeywordLength p }
+    "append"  { TokenKeywordAppend p }
     var       { TokenVariable p $$ }
     str       { TokenString p $$ }
     char      { TokenChar p  $$ }
@@ -70,6 +72,8 @@ import Lexer
 %nonassoc '&' '|'
 %nonassoc '<' '>' "==" "<=" ">=" "!="
 %nonassoc '!'
+%nonassoc "leng"
+%right "append"
 %right '@'
 %left '+' '-'
 %left '*' '/' '%'
@@ -82,6 +86,7 @@ Exp : var "::" '(' TypeList ')' "->" Type                         { FuncTypeDecl
     | if '(' Value ')' then '{' Exp '}' else '{' Exp '}'          { IfElseStatement $3 $7 $11 }
     | if '(' Value ')' then '{' Exp '}'                           { IfStatement $3 $7 }
     | loop '(' Exp ',' Value ')' '{' Exp '}'                      { LoopStatement $3 $5 $8 }
+    | var '(' ValueList ')'                                       { Val (FunctionCall $1 $3) } -- Method Call
     | "return" Value                                              { ReturnStatement $2 }
     | "print" Value                                               { PrintStatement $2 }
     | Type var '=' Value                                          { NewAssignment $1 $2 $4 }
@@ -97,6 +102,7 @@ Exp : var "::" '(' TypeList ')' "->" Type                         { FuncTypeDecl
     | var "^=" Value                                              { ReAssignment $1 (ArithmeticExponent (VariableValue $1) $3) }
 
     | Exp ';' Exp                                                 { ExpList $1 $3 }
+    | Exp ';'                                                     { $1 }
 
 Value : Value '+' Value             { ArithmeticAdd $1 $3 }
       | Value '-' Value             { ArithmeticMinus $1 $3 }
@@ -118,7 +124,9 @@ Value : Value '+' Value             { ArithmeticAdd $1 $3 }
       | var '(' ValueList ')'       { FunctionCall $1 $3 }
       | '[' ValueList ']'           { List $2 }
       | '[' ValueList "..." ']'     { Series $2 }
-      | Value '@' Value             { ListGetElement $1 $3}
+      | Value '@' Value             { ListGetElement $1 $3 }
+      | "leng" Value                { ListGetLength $2 }
+      | Value "append" Value        { ListAppendValue $1 $3 }
       | var                         { VariableValue $1 }
       | str                         { StringValue $1 }
       | int                         { IntValue $1 }
@@ -128,7 +136,8 @@ Value : Value '+' Value             { ArithmeticAdd $1 $3 }
       | '(' Value ')'               { $2 }
 
 ValueList : Value ',' ValueList     { ValueList $1 $3 }
-          | Value                   { Value $1 }
+          | Value                   { ValueList $1 EmptyList }
+          |                         { EmptyList }
 
 VarList : var ',' VarList           { VarList $1 $3 }
         | var                       { Var $1 }
@@ -140,6 +149,8 @@ Type : String                       { TypeString }
      | Char                         { TypeChar }
      | Int                          { TypeInt }
      | Bool                         { TypeBool }
+     | '[' Type ']'                 { TypeStream $2 }
+
 
 {
 parseError :: [Token] -> a
@@ -183,6 +194,8 @@ data Value = ArithmeticAdd Value Value
            | List ValueList
            | Series ValueList
            | ListGetElement Value Value
+           | ListGetLength Value
+           | ListAppendValue Value Value
            | VariableValue String
            | StringValue String
            | IntValue Int
@@ -193,7 +206,7 @@ data Value = ArithmeticAdd Value Value
            deriving (Show, Eq)
 
 data ValueList = ValueList Value ValueList
-               | Value Value
+               | EmptyList
                deriving (Show, Eq)
 
 data VarList = VarList String VarList
@@ -208,6 +221,7 @@ data Type = TypeString
           | TypeChar
           | TypeInt
           | TypeBool
+          | TypeStream Type
           deriving (Show, Eq)
 
 }
