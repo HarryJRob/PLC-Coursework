@@ -14,7 +14,6 @@ import Lexer
 
     '['       { TokenListStart p }
     ']'       { TokenListEnd p }
-    "..."     { TokenListSeries p }
     '@'       { TokenListGetElement p }
 
     '+'       { TokenOpAdd p }
@@ -123,7 +122,6 @@ Value : Value '+' Value             { ArithmeticAdd $1 $3 }
       | '!' Value                   { Not $2 }
       | var '(' ValueList ')'       { FunctionCall $1 $3 }
       | '[' ValueList ']'           { List $2 }
-      | '[' ValueList "..." ']'     { Series $2 }
       | Value '@' Value             { ListGetElement $1 $3 }
       | "leng" Value                { ListGetLength $2 }
       | Value "append" Value        { ListAppendValue $1 $3 }
@@ -194,7 +192,6 @@ data Value = ArithmeticAdd Value Value
 
            | FunctionCall String ValueList
            | List ValueList
-           | Series ValueList
            | ListGetElement Value Value
            | ListGetLength Value
            | ListAppendValue Value Value

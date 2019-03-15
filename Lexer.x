@@ -20,7 +20,6 @@ Tokens :-
 
   \[            { \p s -> TokenListStart p }
   \]            { \p s -> TokenListEnd p }
-  "..."         { \p s -> TokenListSeries p }
   \@            { \p s -> TokenListGetElement p }
 
   \+            { \p s -> TokenOpAdd p }
@@ -89,7 +88,6 @@ data Token =
   TokenTypeBoolean AlexPosn |
   TokenListStart AlexPosn |
   TokenListEnd AlexPosn |
-  TokenListSeries AlexPosn |
   TokenListGetElement AlexPosn |
 
   TokenOpAdd AlexPosn |
@@ -157,7 +155,6 @@ tokenPosn (TokenTypeBoolean (AlexPn a l c) )                 = ("Line: " ++ show
 
 tokenPosn (TokenListStart (AlexPn a l c) )                   = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenListEnd (AlexPn a l c) )                     = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
-tokenPosn (TokenListSeries (AlexPn a l c) )                  = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenListGetElement (AlexPn a l c) )              = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 
 tokenPosn (TokenOpAdd (AlexPn a l c) )                       = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
