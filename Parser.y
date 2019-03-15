@@ -136,14 +136,16 @@ Value : Value '+' Value             { ArithmeticAdd $1 $3 }
       | '(' Value ')'               { $2 }
 
 ValueList : Value ',' ValueList     { ValueList $1 $3 }
-          | Value                   { ValueList $1 EmptyList }
-          |                         { EmptyList }
+          | Value                   { ValueList $1 EmptyValueList }
+          |                         { EmptyValueList }
 
 VarList : var ',' VarList           { VarList $1 $3 }
-        | var                       { Var $1 }
+        | var                       { VarList $1 EmptyVarList }
+        |                           { EmptyVarList }
 
 TypeList : Type ',' TypeList        { TypeList $1 $3 }
-         | Type                     { Type $1 }
+         | Type                     { TypeList $1 EmptyTypeList }
+         |                          { EmptyTypeList }
 
 Type : String                       { TypeString }
      | Char                         { TypeChar }
@@ -206,15 +208,15 @@ data Value = ArithmeticAdd Value Value
            deriving (Show, Eq)
 
 data ValueList = ValueList Value ValueList
-               | EmptyList
+               | EmptyValueList
                deriving (Show, Eq)
 
 data VarList = VarList String VarList
-             | Var String
+             | EmptyVarList
              deriving (Show, Eq)
 
 data TypeList = TypeList Type TypeList
-              | Type Type
+              | EmptyTypeList
               deriving (Show, Eq)
 
 data Type = TypeString

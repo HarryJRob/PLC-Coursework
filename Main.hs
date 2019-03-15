@@ -44,7 +44,8 @@ data Frame = HNewAssignment Type String
            | BooleanNEQH Exp
            | HNot
 
-           | HListGetElement ValueList
+           | HListGetElement Value
+           | ListGetElementH Value
            | HListAppendValue ValueList
            | HListPrependValue ValueList
            | HListValueAppend Value
@@ -75,15 +76,15 @@ replaceValueBinding (s1,e1) ((s2,e2):env)
   | otherwise                = (s2,e2):(replaceValueBinding (s1,e1) env)
 
 mapFunctionBindings :: VarList -> ValueList -> Environment -> Environment
-mapFunctionBindings (Var s) (EmptyList) env                               = error "Number of parameters to function do not match declaration"
-
-mapFunctionBindings (Var s) (ValueList (VariableValue e1) e2) env         = (s, (getValueBinding e1 env)):[]
-mapFunctionBindings (VarList s e1) (ValueList (VariableValue e2) e3) env  = (s, getValueBinding e2 env):(mapFunctionBindings e1 e3 env)
-mapFunctionBindings (VarList s e1) (ValueList e2 e3) env                  = (s, (Val e2)):(mapFunctionBindings e1 e3 env)
+mapFunctionBindings (VarList s e1) (EmptyValueList) env                                      = error "Number of parameters passed to function do not match declaration"
+mapFunctionBindings (EmptyVarList) (ValueList e1 e2) env                                     = error "Number of parameters passed to function do not match declaration"
+mapFunctionBindings (EmptyVarList) (EmptyValueList) env                                      = []
+mapFunctionBindings (VarList s e1) (ValueList (VariableValue e2) e3) env                     = (s, getValueBinding e2 env):(mapFunctionBindings e1 e3 env)
+mapFunctionBindings (VarList s e1) (ValueList e2 e3) env                                     = (s, (Val e2)):(mapFunctionBindings e1 e3 env)
 
 checkFunctionVariablesBound :: ValueList -> Environment -> Bool
+checkFunctionVariablesBound (EmptyValueList) env                  = True
 checkFunctionVariablesBound _ []                                  = False
-checkFunctionVariablesBound (EmptyList) env                       = True
 checkFunctionVariablesBound (ValueList (VariableValue e1) e2) env = (isValueBound e1 env) && (checkFunctionVariablesBound e2 env)
 checkFunctionVariablesBound (ValueList e1 e2) env                 = (isValue (Val e1)) && (checkFunctionVariablesBound e2 env)
 
@@ -100,31 +101,30 @@ updateEnvironment ((s,e):env1) env2   = if isValueBound s env2 then updateEnviro
 -- List Helper Functions
 
 listGetElement :: ValueList -> Int -> Value
-listGetElement (EmptyList) i = (error "Attempted to get an invalid element from a list")
+listGetElement (EmptyValueList) i = (error "Attempted to get an invalid element from a list")
 listGetElement (ValueList e1 e2) i
   | i == 0        = e1
   | otherwise     = listGetElement e2 (i-1)
 
 listGetLength :: ValueList -> Int
-listGetLength (EmptyList) = 0
+listGetLength (EmptyValueList) = 0
 listGetLength (ValueList e1 e2) = 1 + listGetLength e2
 
 appendTwoLists :: ValueList -> ValueList -> ValueList
-appendTwoLists (EmptyList) (EmptyList)        = EmptyList
-appendTwoLists (EmptyList) (ValueList e1 e2 ) = ValueList e1 e2
-appendTwoLists (ValueList e1 e2) (EmptyList)  = ValueList e1 e2
-appendTwoLists (ValueList e1 e2) e3           = ValueList e1 (appendTwoLists e2 e3)
+appendTwoLists (EmptyValueList) (EmptyValueList)        = EmptyValueList
+appendTwoLists (EmptyValueList) (ValueList e1 e2 )      = ValueList e1 e2
+appendTwoLists (ValueList e1 e2) (EmptyValueList)       = ValueList e1 e2
+appendTwoLists (ValueList e1 e2) e3                     = ValueList e1 (appendTwoLists e2 e3)
 
 listAppend :: ValueList -> Value -> ValueList
-listAppend (EmptyList) v                     = ValueList v EmptyList
-listAppend (ValueList e1 EmptyList) v        = ValueList e1 (ValueList v EmptyList)
+listAppend (EmptyValueList) v                = ValueList v EmptyValueList
 listAppend (ValueList e1 e2) v               = ValueList e1 (listAppend e2 v)
 
 -- Value Helper Functions
 
 showValueList :: ValueList -> String
-showValueList (ValueList e1 EmptyList)  = showValue (Val e1)
-showValueList (ValueList e1 e2)         = showValue (Val e1) ++ "," ++ showValueList e2
+showValueList (ValueList e1 EmptyValueList)  = showValue (Val e1)
+showValueList (ValueList e1 e2)              = showValue (Val e1) ++ "," ++ showValueList e2
 
 showValue :: Exp -> String
 showValue (Val (List a))          = "[" ++ showValueList a ++ "]"
@@ -182,7 +182,7 @@ evalExp ((FuncDeclaration e1 e2 e3), env, k)                = if isValueBound e1
 
 evalExp ((Val (FunctionCall e1 e2)), env, k)                = if checkFunctionVariablesBound e2 env && (getValueBinding e1 env /= (Val (NullValue)))
                                                                 then return (body, (getAllFunctionBindings env ++ mapFunctionBindings vars e2 env), (HFunctionCall env):k)
-                                                                else error ("Invalid function call" ++ e1)
+                                                                else error ("Invalid function call " ++ e1)
                                                                   where
                                                                     (ExpList (VarListWrapper vars) body) = getValueBinding e1 env
 
@@ -194,96 +194,95 @@ evalExp (v, env, (HReturnStatement):k) | isValue v          = return (v, env, k)
 -- Arithmetic Operator Evaluation
 evalExp ((Val (ArithmeticAdd e1 e2)), env, k)                                                   = return ((Val e1), env, (HArithmeticAdd (Val e2)):k)
 evalExp (v, env, (HArithmeticAdd e2):k) | isValue v                                             = return (e2, env, (ArithmeticAddH v):k)
-evalExp (v@(Val (IntValue e1)), env, (ArithmeticAddH (Val (IntValue e2))):k) | isValue v        = return ((Val (IntValue (e2 + e1))), env, k)
+evalExp ((Val (IntValue e1)), env, (ArithmeticAddH (Val (IntValue e2))):k) | isValue (Val (IntValue e1)) = return ((Val (IntValue (e2 + e1))), env, k)
 
 evalExp ((Val (ArithmeticMinus e1 e2)), env, k)                                                 = return ((Val e1), env, (HArithmeticMinus (Val e2)):k)
 evalExp (v, env, (HArithmeticMinus e2):k) | isValue v                                           = return (e2, env, (ArithmeticMinusH v):k)
-evalExp (v@(Val (IntValue e1)), env, (ArithmeticMinusH (Val (IntValue e2))):k) | isValue v      = return ((Val (IntValue (e2 - e1))), env, k)
+evalExp ((Val (IntValue e1)), env, (ArithmeticMinusH (Val (IntValue e2))):k) | isValue (Val (IntValue e1)) = return ((Val (IntValue (e2 - e1))), env, k)
 
 evalExp ((Val (ArithmeticMultiply e1 e2)), env, k)                                              = return ((Val e1), env, (HArithmeticMultiply (Val e2)):k)
 evalExp (v, env, (HArithmeticMultiply e2):k) | isValue v                                        = return (e2, env, (ArithmeticMultiplyH v):k)
-evalExp (v@(Val (IntValue e1)), env, (ArithmeticMultiplyH (Val (IntValue e2))):k) | isValue v   = return ((Val (IntValue (e2 * e1))), env, k)
+evalExp ((Val (IntValue e1)), env, (ArithmeticMultiplyH (Val (IntValue e2))):k) | isValue (Val (IntValue e1)) = return ((Val (IntValue (e2 * e1))), env, k)
 
 evalExp ((Val (ArithmeticDivide e1 e2)), env, k)                                                = return ((Val e1), env, (HArithmeticDivide (Val e2)):k)
 evalExp (v, env, (HArithmeticDivide e2):k) | isValue v                                          = return (e2, env, (ArithmeticDivideH v):k)
-evalExp (v@(Val (IntValue e1)), env, (ArithmeticDivideH (Val (IntValue e2))):k) | isValue v     = return ((Val (IntValue (div e2 e1))), env, k)
+evalExp ((Val (IntValue e1)), env, (ArithmeticDivideH (Val (IntValue e2))):k) | isValue (Val (IntValue e1)) = return ((Val (IntValue (div e2 e1))), env, k)
 
 evalExp ((Val (ArithmeticModulo e1 e2)), env, k)                                                = return ((Val e1), env, (HArithmeticModulo (Val e2)):k)
 evalExp (v, env, (HArithmeticModulo e2):k) | isValue v                                          = return (e2, env, (ArithmeticModuloH v):k)
-evalExp (v@(Val (IntValue e1)), env, (ArithmeticModuloH (Val (IntValue e2))):k) | isValue v     = return ((Val (IntValue (mod e2 e1))), env, k)
+evalExp ((Val (IntValue e1)), env, (ArithmeticModuloH (Val (IntValue e2))):k) | isValue (Val (IntValue e1)) = return ((Val (IntValue (mod e2 e1))), env, k)
 
 evalExp ((Val (ArithmeticExponent e1 e2)), env, k)                                              = return ((Val e1), env, (HArithmeticExponent (Val e2)):k)
 evalExp (v, env, (HArithmeticExponent e2):k) | isValue v                                        = return (e2, env, (ArithmeticExponentH v):k)
-evalExp (v@(Val (IntValue e1)), env, (ArithmeticExponentH (Val (IntValue e2))):k) | isValue v   = return ((Val (IntValue (e2 ^ e1))), env, k)
+evalExp ((Val (IntValue e1)), env, (ArithmeticExponentH (Val (IntValue e2))):k) | isValue (Val (IntValue e1)) = return ((Val (IntValue (e2 ^ e1))), env, k)
 
 
 -- Boolean Operator Evaluation
 evalExp ((Val (BooleanAnd e1 e2)), env, k)                              = return ((Val e1), env, (HBooleanAnd (Val e2)):k)
 evalExp (v, env, (HBooleanAnd e2):k) | isValue v                        = return (e2, env, (BooleanAndH v):k)
-evalExp (v@(Val e1), env, (BooleanAndH (Val e2)):k) | isValue v         = if (e1 == TrueValue && e2 == TrueValue) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
+evalExp ((Val e1), env, (BooleanAndH (Val e2)):k) | isValue (Val e1)    = if (e1 == TrueValue && e2 == TrueValue) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
 
 evalExp ((Val (BooleanOr e1 e2)), env, k)                               = return ((Val e1), env, (HBooleanOr (Val e2)):k)
 evalExp (v, env, (HBooleanOr e2):k) | isValue v                         = return (e2, env, (BooleanOrH v):k)
-evalExp (v@(Val e1), env, (BooleanOrH (Val e2)):k) | isValue v          = if (e1 == TrueValue || e2 == TrueValue) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
+evalExp ((Val e1), env, (BooleanOrH (Val e2)):k) | isValue (Val e1)     = if (e1 == TrueValue || e2 == TrueValue) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
 
--- TODO: Need list comparison
 evalExp ((Val (BooleanEQ e1 e2)), env, k)                                                     = return ((Val e1), env, (HBooleanEQ (Val e2)):k)
 evalExp (v, env, (HBooleanEQ e2):k) | isValue v                                               = return (e2, env, (BooleanEQH v):k)
-evalExp (v@(Val (IntValue e1)), env, (BooleanEQH (Val (IntValue e2))):k) | isValue v          = if (e1 == e2 ) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
-evalExp (v@(Val (StringValue e1)), env, (BooleanEQH (Val (StringValue e2))):k) | isValue v    = if (e1 == e2 ) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
-evalExp (v@(Val (CharValue e1)), env, (BooleanEQH (Val (CharValue e2))):k) | isValue v        = if (e1 == e2 ) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
-evalExp (v@(Val e1), env, (BooleanEQH (Val e2)):k) | isValue v                                = if (e1 == TrueValue && e2 == TrueValue) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
+evalExp ((Val e1), env, (BooleanEQH (Val e2)):k) | isValue (Val e1)
+  | e1 == e2      = return ((Val (TrueValue)), env, k)
+  | otherwise     = return ((Val (FalseValue)), env, k)
 
 evalExp ((Val (BooleanNEQ e1 e2)), env, k)                                                    = return ((Val e1), env, (HBooleanNEQ (Val e2)):k)
 evalExp (v, env, (HBooleanNEQ e2):k) | isValue v                                              = return (e2, env, (BooleanNEQH v):k)
-evalExp (v@(Val (IntValue e1)), env, (BooleanNEQH (Val (IntValue e2))):k) | isValue v         = if (e1 /= e2 ) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
-evalExp (v@(Val (StringValue e1)), env, (BooleanNEQH (Val (StringValue e2))):k) | isValue v   = if (e1 /= e2 ) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
-evalExp (v@(Val (CharValue e1)), env, (BooleanNEQH (Val (CharValue e2))):k) | isValue v       = if (e1 /= e2 ) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
-evalExp (v@(Val e1), env, (BooleanNEQH (Val e2)):k) | isValue v                               = if (e1 == TrueValue && e2 == FalseValue) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
+evalExp ((Val e1), env, (BooleanNEQH (Val e2)):k) | isValue (Val e1)
+  | e1 /= e2      = return ((Val (TrueValue)), env, k)
+  | otherwise     = return ((Val (FalseValue)), env, k)
 
 evalExp ((Val (BooleanLT e1 e2)), env, k)                                                     = return ((Val e1), env, (HBooleanLT (Val e2)):k)
 evalExp (v, env, (HBooleanLT e2):k) | isValue v                                               = return (e2, env, (BooleanLTH v):k)
-evalExp (v@(Val (IntValue e1)), env, (BooleanLTH (Val (IntValue e2))):k) | isValue v          = if (e2 < e1) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
+evalExp ((Val (IntValue e1)), env, (BooleanLTH (Val (IntValue e2))):k) | isValue (Val (IntValue e1)) = if (e2 < e1) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
 
 evalExp ((Val (BooleanGT e1 e2)), env, k)                                                     = return ((Val e1), env, (HBooleanGT (Val e2)):k)
 evalExp (v, env, (HBooleanGT e2):k) | isValue v                                               = return (e2, env, (BooleanGTH v):k)
-evalExp (v@(Val (IntValue e1)), env, (BooleanGTH (Val (IntValue e2))):k) | isValue v          = if (e2 > e1) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
+evalExp ((Val (IntValue e1)), env, (BooleanGTH (Val (IntValue e2))):k) | isValue (Val (IntValue e1)) = if (e2 > e1) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
 
 evalExp ((Val (BooleanLTEQ e1 e2)), env, k)                                                   = return ((Val e1), env, (HBooleanLTEQ (Val e2)):k)
 evalExp (v, env, (HBooleanLTEQ e2):k) | isValue v                                             = return (e2, env, (BooleanLTEQH v):k)
-evalExp (v@(Val (IntValue e1)), env, (BooleanLTEQH (Val (IntValue e2))):k) | isValue v        = if (e2 <= e1) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
+evalExp ((Val (IntValue e1)), env, (BooleanLTEQH (Val (IntValue e2))):k) | isValue (Val (IntValue e1)) = if (e2 <= e1) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
 
 evalExp ((Val (BooleanGTEQ e1 e2)), env, k)                                                   = return ((Val e1), env, (HBooleanGTEQ (Val e2)):k)
 evalExp (v, env, (HBooleanGTEQ e2):k) | isValue v                                             = return (e2, env, (BooleanGTEQH v):k)
-evalExp (v@(Val (IntValue e1)), env, (BooleanGTEQH (Val (IntValue e2))):k) | isValue v        = if (e2 >= e1) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
+evalExp ((Val (IntValue e1)), env, (BooleanGTEQH (Val (IntValue e2))):k) | isValue (Val (IntValue e1)) = if (e2 >= e1) then return ((Val (TrueValue)), env, k) else return ((Val (FalseValue)), env, k)
 
 evalExp ((Val (Not e1)), env, k)            = return ((Val e1), env, (HNot):k)
 evalExp ((Val TrueValue), env, (HNot):k)    = return ((Val FalseValue), env, k)
 evalExp ((Val FalseValue), env, (HNot):k)   = return ((Val TrueValue), env, k)
 
 -- List Functions
-evalExp ((Val (ListGetElement (List e1) e2)), env, k)                        = return ((Val e2), env, (HListGetElement e1):k)
-evalExp (v@(Val (IntValue e1)), env, (HListGetElement e2):k) | isValue v     = return ((Val (listGetElement e2 e1)), env, k)
+evalExp ((Val (ListGetElement e1 e2)), env, k)                               = return ((Val e2), env, (HListGetElement e1):k)
+evalExp ((Val e1), env, (HListGetElement e2):k) | isValue (Val e1)           = return ((Val e2), env, (ListGetElementH e1):k)
+evalExp ((Val (List e1)), env, (ListGetElementH (IntValue e2)):k) | isValue (Val (List e1)) = return ((Val (listGetElement e1 e2)), env, k)
 
-evalExp ((Val (ListGetLength (List e1))), env, k)                            = return ((Val (IntValue (listGetLength e1))), env, k)
+
+-- evalExp ((Val (ListGetLength (List e1))), env, k)                            = return ((Val (IntValue (listGetLength e1))), env, k)
 
 
-evalExp ((Val (ListAppendValue (List e1) (List e2))), env, k)                = return ((Val (List (appendTwoLists e1 e2))), env, k)
-
-evalExp ((Val (ListAppendValue (List e1) e2)), env, k)                       = return ((Val e2), env, (HListAppendValue e1):k)
-evalExp (v@(Val e1), env, (HListAppendValue e2):k) | isValue v               = return ((Val (List (listAppend e2 e1))), env, k)
-
-evalExp ((Val (ListAppendValue e1 (List e2))), env, k)                       = return ((Val e1), env, (HListPrependValue e2):k)
-evalExp (v@(Val e1), env, (HListPrependValue e2):k) | isValue v              = return ((Val (List (ValueList e1 e2))), env, k)
-
-evalExp ((Val (ListAppendValue e1 e2)), env, k)                              = return ((Val e2), env, (HListValueAppend e1):k)
-evalExp (v@(Val e1), env, (HListValueAppend e2):k) | isValue v               = return ((Val e2), env, (ListValueAppendH e1):k)
-evalExp (v@(Val (List e1)), env, (ListValueAppendH (List e2)):k) | isValue v         = return ((Val (ListAppendValue (List e1) (List e2))), env, k)
-evalExp (v@(Val e1), env, (ListValueAppendH (List e2)):k) | isValue v                  = return ((Val (ListAppendValue e1 (List e2))), env, k)
-evalExp (v@(Val (List e1)), env, (ListValueAppendH e2):k) | isValue v                  = return ((Val (ListAppendValue (List e1) e2), env, k))
-
-evalExp (v@(Val e1), env, (ListValueAppendH e2):k) | isValue v               = return ((Val (List (ValueList e1 (ValueList e2 EmptyList)))), env, k)
-
+-- evalExp ((Val (ListAppendValue (List e1) (List e2))), env, k)                = return ((Val (List (appendTwoLists e1 e2))), env, k)
+--
+-- evalExp ((Val (ListAppendValue (List e1) e2)), env, k)                       = return ((Val e2), env, (HListAppendValue e1):k)
+-- evalExp (v@(Val e1), env, (HListAppendValue e2):k) | isValue v               = return ((Val (List (listAppend e2 e1))), env, k)
+--
+-- evalExp ((Val (ListAppendValue e1 (List e2))), env, k)                       = return ((Val e1), env, (HListPrependValue e2):k)
+-- evalExp (v@(Val e1), env, (HListPrependValue e2):k) | isValue v              = return ((Val (List (ValueList e1 e2))), env, k)
+--
+-- evalExp ((Val (ListAppendValue e1 e2)), env, k)                              = return ((Val e2), env, (HListValueAppend e1):k)
+-- evalExp (v@(Val e1), env, (HListValueAppend e2):k) | isValue v               = return ((Val e2), env, (ListValueAppendH e1):k)
+-- evalExp (v@(Val (List e1)), env, (ListValueAppendH (List e2)):k) | isValue v         = return ((Val (ListAppendValue (List e1) (List e2))), env, k)
+-- evalExp (v@(Val e1), env, (ListValueAppendH (List e2)):k) | isValue v                  = return ((Val (ListAppendValue e1 (List e2))), env, k)
+-- evalExp (v@(Val (List e1)), env, (ListValueAppendH e2):k) | isValue v                  = return ((Val (ListAppendValue (List e1) e2), env, k))
+--
+-- evalExp ((Val e1), env, (ListValueAppendH e2):k) | isValue (Val e1)               = return ((Val (List (ValueList e1 (ValueList e2 EmptyList)))), env, k)
+--
 
 evalFull :: String -> IO State
 evalFull = evalProgram . parse
