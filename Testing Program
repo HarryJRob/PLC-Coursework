@@ -1,15 +1,22 @@
+foo :: ([Int]) -> Int;
 
-leng :: ([Int]) -> Int
+func foo(xs) {
 
-func leng(xs) {
+  print leng xs;
 
-  loop(Int y = 0; false) {
+  loop(Int y = 0, y >= leng xs) {
+    print "y:";
+    print y;
+    print "Element:";
+    print xs @ y;
+    y++;
+    print "Will Exit: ";
+    print y;
+    print leng xs;
+    print (y >= leng xs);
+  };
 
-    if ( xs@y != null ) then {
-      return y-1;
-    } else {
-      y++;
-    }
-  }
+  return 0;
+};
 
-}
+Int y = foo([1,2,3]);

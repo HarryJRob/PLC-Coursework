@@ -70,7 +70,7 @@ Tokens :-
 
   [t T]rue      { \p s -> TokenBoolTrue p }
   [f F]alse     { \p s -> TokenBoolFalse p }
-  \".*\"        { \p s -> TokenString p s }
+  \".*\"        { \p s -> TokenString p (reverse $ tail $ reverse $ tail s) }
   \'.\'         { \p (_:c:_) -> TokenChar p c }
   \-$digit+     { \p s -> TokenInteger p (read s) }
   $digit+       { \p s -> TokenInteger p (read s) }
