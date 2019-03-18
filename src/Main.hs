@@ -5,17 +5,19 @@ import System.Directory
 
 main = do
       args <- getArgs
-      print args;
-      if length args == 1 then
+      contents <- getContents
+      if length args == 1 && contents /= "" then
         do
           fileExists <- doesFileExist (args !! 0)
           if fileExists
             then
               do
+                putStrLn ("Running program: " ++ (args !! 0) ++ "\t\nOn input: " ++ contents)
+
+                putStrLn ("\nStarting Interpreting: \n")
                 fileContents <- readFile (args !! 0)
-                print ("Starting Interpreting " ++ (args !! 0))
                 resultState <- (evalFull $ fileContents)
-                print ("Finished Interpreting")
+                putStrLn ("\nFinished Interpreting")
                 return ""
               else error "Failed to interpret file: File does not exists"
         else
