@@ -21,6 +21,6 @@ main = do
                 return ""
               else error "Failed to interpret file: File does not exists"
         else
-          error "Invalid number of parameters passed to interpreter"
+          error "Invalid number of parameters passed to the interpreter"
       print args
       return ""
