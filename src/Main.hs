@@ -5,6 +5,7 @@ import System.Directory
 
 main = do
       args <- getArgs
+      print args;
       if length args == 1 then
         do
           fileExists <- doesFileExist (args !! 0)
