@@ -80,7 +80,7 @@ import Lexer
 
 %right ';'
 %%
-Exp : var "::" '(' TypeList ')' "->" Type                         { FuncTypeDeclaration $1 $4 $7 }
+Exp : var "::" '(' TypeList ')' "->" Type                         { FuncTypeDeclaration $1 (FunctionType $4 $7) }
     | func var '(' VarList ')' '{' Exp '}'                        { FuncDeclaration $2 $4 $7 }
     | if '(' Value ')' then '{' Exp '}' else '{' Exp '}'          { IfElseStatement $3 $7 $11 }
     | if '(' Value ')' then '{' Exp '}'                           { IfStatement $3 $7 }
@@ -156,7 +156,7 @@ Type : String                       { TypeString }
 parseError :: [Token] -> a
 parseError (t:ts) = error ("Parse error at: " ++ tokenPosn t)
 
-data Exp = FuncTypeDeclaration String TypeList Type
+data Exp = FuncTypeDeclaration String Type
          | FuncDeclaration String VarList Exp
          | IfElseStatement Value Exp Exp
          | IfStatement Value Exp
@@ -222,6 +222,7 @@ data Type = TypeNull
           | TypeInt
           | TypeBool
           | TypeStream Type
+          | FunctionType TypeList Type
           deriving (Show, Eq)
 
 }

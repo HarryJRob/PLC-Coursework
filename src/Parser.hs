@@ -1262,7 +1262,7 @@ happyReduction_1 ((HappyAbsSyn9  happy_var_7) `HappyStk`
 	(HappyTerminal (TokenVariable p happy_var_1)) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn4
-		 (FuncTypeDeclaration happy_var_1 happy_var_4 happy_var_7
+		 (FuncTypeDeclaration happy_var_1 (FunctionType happy_var_4 happy_var_7)
 	) `HappyStk` happyRest
 
 happyReduce_2 = happyReduce 8 4 happyReduction_2
@@ -1880,7 +1880,7 @@ happySeq = happyDontSeq
 parseError :: [Token] -> a
 parseError (t:ts) = error ("Parse error at: " ++ tokenPosn t)
 
-data Exp = FuncTypeDeclaration String TypeList Type
+data Exp = FuncTypeDeclaration String Type
          | FuncDeclaration String VarList Exp
          | IfElseStatement Value Exp Exp
          | IfStatement Value Exp
@@ -1946,6 +1946,7 @@ data Type = TypeNull
           | TypeInt
           | TypeBool
           | TypeStream Type
+          | FunctionType TypeList Type
           deriving (Show, Eq)
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 

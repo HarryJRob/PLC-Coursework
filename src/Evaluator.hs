@@ -1,6 +1,7 @@
 module Evaluator where
 import Lexer
 import Parser
+import TypeChecker
 
 type Environment = [ (String, Exp) ]
 
@@ -56,51 +57,6 @@ data Frame = HNewAssignment Type String
 
 type Kontinuation = [ Frame ]
 type State = (Exp, Environment, Kontinuation)
-
--- Type Checker
-
-type TypeEnvironment = [ (String, Type) ]
-
-showType :: Type -> String
-showType (TypeNull)         = "Null"
-showType (TypeString)       = "String"
-showType (TypeChar)         = "Char"
-showType (TypeInt)          = "Int"
-showType (TypeBool)         = "Bool"
-showType (TypeStream t)     = "[" ++ showType t ++ "]"
-
-isVariableBound :: String -> TypeEnvironment -> Bool
-isVariableBound s1 []           = False
-isVariableBound s1 ((s2,t):env)
-  | s1 == s2                     = True
-  | otherwise                   = isVariableBound s1 env
-
-getVariableType :: String -> TypeEnvironment -> Type
-getVariableType s1 []           = error ("No type bindings for \"" ++ s1 ++ "\" exists")
-getVariableType s1 ((s2,t):env)
-  | s1 == s2                    = t
-  | otherwise                   = getVariableType s1 env
-
-typeCheck :: Exp -> TypeEnvironment -> (Type, TypeEnvironment)
-typeCheck (Val (List (ValueList v _))) env = (TypeStream (fst $ typeCheck (Val v) env), env)
-typeCheck (Val (VariableValue s)) env   = ((getVariableType s env), env)
-typeCheck (Val (StringValue _)) env     = (TypeString, env)
-typeCheck (Val (IntValue _)) env        = (TypeInt, env)
-typeCheck (Val (CharValue _)) env       = (TypeChar, env)
-typeCheck (Val (TrueValue)) env         = (TypeBool, env)
-typeCheck (Val (FalseValue)) env        = (TypeBool, env)
-typeCheck (Val (NullValue)) env         = (TypeNull, env)
-typeCheck (NewAssignment t s e1) env    = if isVariableBound s env
-                                          then error ("Attempted to override assignment of variable: " ++ s)
-                                          else if (fst $ typeCheck (Val e1) env) == t
-                                                then (TypeNull, ((s,t):env))
-                                                else error ("Attempted to assign variable \"" ++ s ++ "\" of type '" ++ (showType t) ++ "' to expression of type " ++ (showType $ fst $ typeCheck (Val e1) env))
-
-typeCheck (ReAssignment s e1) env       = if isVariableBound s env
-                                            then if (getVariableType s env) == (fst $ typeCheck (Val e1) env)
-                                              then (TypeNull, env)
-                                              else error ("Attempted to assign variable \"" ++ s ++ "\" of type '" ++ (showType $ getVariableType s env) ++ "' to expression of type " ++ (showType $ fst $ typeCheck (Val e1) env))
-                                            else error ("Attempted to assign to non-existent variable: " ++ s)
 
 -- Evaluator
 
@@ -216,6 +172,7 @@ evalExp (v, env, (HReAssignment s):k) | isValue v            = return ((Val Null
 evalExp ((PrintStatement e1), env, k)                        = return ((Val e1), env, (HPrintStatement):k)
 evalExp (v, env, (HPrintStatement):k) | isValue v            = (print $ showValue v) >> return (v, env, k)
 
+-- TODO: make all statements in if statement private scope
 evalExp ((IfStatement e1 e2), env, k)                        = return ((Val e1), env, (HIfStatement e2):k)
 evalExp (v, env, (HIfStatement e1):k) | isValue v            = if v == (Val TrueValue) then return (e1, env, k) else return ((Val NullValue), env, k)
 
@@ -226,16 +183,16 @@ evalExp ((LoopStatement e1 e2 e3), env, k)                   = return (e1, env, 
 evalExp (v, env1, (HLoopStatement e1 e2 env2):k) | isValue v = return ((Val e1), env1, (LoopStatementH e1 e2 env2):k)
 evalExp (v, env1, (LoopStatementH e1 e2 env2):k) | isValue v = if v == (Val TrueValue) then return ((Val NullValue), updateEnvironment env1 env2, k) else return (e2, env1, (HLoopStatement e1 e2 env2):k)
 
-evalExp ((FuncTypeDeclaration e1 e2 e3), env, k)             = if isValueBound e1 env then error ("Duplicate bindings for function: " ++ e1) else return ((Val (NullValue)), (e1,(Val (NullValue))):env, k)
+evalExp ((FuncTypeDeclaration e1 e2), env, k)                = if isValueBound e1 env then error ("Duplicate bindings for function: " ++ e1) else return ((Val (NullValue)), (e1,(Val (NullValue))):env, k)
 
 evalExp ((FuncDeclaration e1 e2 e3), env, k)                 = if isValueBound e1 env then return ((Val (NullValue)), (replaceValueBinding (e1, (ExpList (VarListWrapper e2) e3)) env), k) else error ("Function binding not found for: " ++ e1)
 
-evalExp ((Val (FunctionCall e1 e2)), env, k)                 = if checkFunctionVariablesBound e2 env && (getValueBinding e1 env /= (Val (NullValue)))
+-- TODO: evaluate all arguments of function call to final value
+evalExp ((Val (FunctionCall e1 e2)), env, k)                 = if (getValueBinding e1 env /= (Val (NullValue))) && checkFunctionVariablesBound e2 env
                                                                  then return (body, (getAllFunctionBindings env ++ mapFunctionBindings vars e2 env), (HFunctionCall env):k)
                                                                  else error ("Invalid function call " ++ e1)
                                                                    where
                                                                      (ExpList (VarListWrapper vars) body) = getValueBinding e1 env
-
 evalExp (v, env1, (HFunctionCall env2):k) | isValue v        = return (v, env2, k)
 
 evalExp ((ReturnStatement e1), env, k)                       = return ((Val e1), env, (HReturnStatement):k)
