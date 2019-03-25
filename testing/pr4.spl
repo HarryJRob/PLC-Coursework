@@ -1,0 +1,23 @@
+[Int] as = args @ 0;
+
+sumElems :: ([Int], Int) -> Int;
+
+func sumElems(as, b) {
+  Int output = 0;
+
+  loop (Int count = 0, count > b) {
+    output += as @ count;
+    count++;
+  };
+
+  return output;
+};
+
+[Int] output = [];
+
+loop (Int count = 0, count >= leng as) {
+  output = output app sumElems(as,count);
+  count++;
+};
+
+print output;

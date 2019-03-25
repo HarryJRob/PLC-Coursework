@@ -216,7 +216,8 @@ data TypeList = TypeList Type TypeList
               | EmptyTypeList
               deriving (Show, Eq)
 
-data Type = TypeString
+data Type = TypeNull
+          | TypeString
           | TypeChar
           | TypeInt
           | TypeBool

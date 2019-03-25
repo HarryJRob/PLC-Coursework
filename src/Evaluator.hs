@@ -57,6 +57,53 @@ data Frame = HNewAssignment Type String
 type Kontinuation = [ Frame ]
 type State = (Exp, Environment, Kontinuation)
 
+-- Type Checker
+
+type TypeEnvironment = [ (String, Type) ]
+
+showType :: Type -> String
+showType (TypeNull)         = "Null"
+showType (TypeString)       = "String"
+showType (TypeChar)         = "Char"
+showType (TypeInt)          = "Int"
+showType (TypeBool)         = "Bool"
+showType (TypeStream t)     = "[" ++ showType t ++ "]"
+
+isVariableBound :: String -> TypeEnvironment -> Bool
+isVariableBound s1 []           = False
+isVariableBound s1 ((s2,t):env)
+  | s1 == s2                     = True
+  | otherwise                   = isVariableBound s1 env
+
+getVariableType :: String -> TypeEnvironment -> Type
+getVariableType s1 []           = error ("No type bindings for \"" ++ s1 ++ "\" exists")
+getVariableType s1 ((s2,t):env)
+  | s1 == s2                    = t
+  | otherwise                   = getVariableType s1 env
+
+typeCheck :: Exp -> TypeEnvironment -> (Type, TypeEnvironment)
+typeCheck (Val (List (ValueList v _))) env = (TypeStream (fst $ typeCheck (Val v) env), env)
+typeCheck (Val (VariableValue s)) env   = ((getVariableType s env), env)
+typeCheck (Val (StringValue _)) env     = (TypeString, env)
+typeCheck (Val (IntValue _)) env        = (TypeInt, env)
+typeCheck (Val (CharValue _)) env       = (TypeChar, env)
+typeCheck (Val (TrueValue)) env         = (TypeBool, env)
+typeCheck (Val (FalseValue)) env        = (TypeBool, env)
+typeCheck (Val (NullValue)) env         = (TypeNull, env)
+typeCheck (NewAssignment t s e1) env    = if isVariableBound s env
+                                          then error ("Attempted to override assignment of variable: " ++ s)
+                                          else if (fst $ typeCheck (Val e1) env) == t
+                                                then (TypeNull, ((s,t):env))
+                                                else error ("Attempted to assign variable \"" ++ s ++ "\" of type '" ++ (showType t) ++ "' to expression of type " ++ (showType $ fst $ typeCheck (Val e1) env))
+
+typeCheck (ReAssignment s e1) env       = if isVariableBound s env
+                                            then if (getVariableType s env) == (fst $ typeCheck (Val e1) env)
+                                              then (TypeNull, env)
+                                              else error ("Attempted to assign variable \"" ++ s ++ "\" of type '" ++ (showType $ getVariableType s env) ++ "' to expression of type " ++ (showType $ fst $ typeCheck (Val e1) env))
+                                            else error ("Attempted to assign to non-existent variable: " ++ s)
+
+-- Evaluator
+
 getValueBinding :: String -> Environment -> Exp
 getValueBinding x [] = error ("No variable bindings for \"" ++ x ++ "\" exists")
 getValueBinding x ((y,e):env) | x == y    = e
@@ -126,10 +173,12 @@ listAppend e1 e2                   = ValueList e1 (ValueList e2 EmptyValueList)
 
 -- Value Helper Functions
 showValueList :: ValueList -> String
+showValueList EmptyValueList                 = "[]"
 showValueList (ValueList e1 EmptyValueList)  = showValue (Val e1)
 showValueList (ValueList e1 e2)              = showValue (Val e1) ++ "," ++ showValueList e2
 
 showValue :: Exp -> String
+showValue (Val (List EmptyValueList)) = "[]"
 showValue (Val (List a))          = "[" ++ showValueList a ++ "]"
 showValue (Val (VariableValue a)) = show a
 showValue (Val (StringValue a))   = a
@@ -159,7 +208,7 @@ evalExp ((ExpList e1 e2), env, k)                            = return (e1, env, 
 evalExp (v, env1, (HExpList e2):k) | isValue v               = return (e2, env1, k)
 
 evalExp ((NewAssignment t s e1), env, k)                     = return ((Val e1), env, (HNewAssignment t s):k)
-evalExp (v, env, (HNewAssignment t s):k) | isValue v         = return ((Val NullValue),(s,v):env,k)
+evalExp (v, env, (HNewAssignment t s):k) | isValue v         = if isValueBound s env then (error "Attempted to redeclare already existing variable") else return ((Val NullValue),(s,v):env,k)
 
 evalExp ((ReAssignment s e1), env, k)                        = return ((Val e1), env, (HReAssignment s):k)
 evalExp (v, env, (HReAssignment s):k) | isValue v            = return ((Val NullValue), replaceValueBinding (s,v) env,k) -- Needs reworking

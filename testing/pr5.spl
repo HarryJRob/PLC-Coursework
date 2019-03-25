@@ -1,0 +1,40 @@
+[Int] as = args @ 0;
+
+fiboToN :: (Int) -> [Int];
+
+func fiboToN(length) {
+  if (length == 1) then {
+    return [1];
+  };
+
+  [Int] output = [1,1];
+
+  loop(Int count = 1, count >= length - 1) {
+    output = output app ((output @ count) + (output @ (count - 1)));
+    count++;
+  };
+
+  return output;
+};
+
+Int lenAs = leng as;
+
+[Int] coefficients = fiboToN(lenAs);
+[Int] output = [];
+
+Int nextValue = 0;
+
+loop (Int elemCount = 0, elemCount >= lenAs) {
+  nextValue = 0;
+
+  loop(Int count = 0, count > elemCount) {
+    nextValue += (as @ count) * (coefficients @ (elemCount - count));
+    count++;
+  };
+
+  output = output app nextValue;
+  elemCount++;
+
+};
+
+print output;

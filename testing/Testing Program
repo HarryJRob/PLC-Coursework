@@ -1,0 +1,14 @@
+
+loop (Int x = 0, x >= 5) {
+
+  Int value = 0;
+
+  loop (Int y = 0, y >= x) {
+    value += 20;
+    print "running loop";
+    y++;
+  };
+
+
+  x++;
+};

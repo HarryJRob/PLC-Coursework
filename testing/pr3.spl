@@ -1,0 +1,13 @@
+[Int] as = args @ 0;
+[Int] bs = args @ 1;
+
+[Int] output = [];
+
+loop (Int count = 0, count >= leng as) {
+
+  output = output app ((as @ count) + 3 * (bs @ count));
+
+  count++;
+};
+
+print output;
