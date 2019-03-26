@@ -37,4 +37,4 @@ loop (Int elemCount = 0, elemCount >= lenAs) {
 
 };
 
-print output;
+args = [] app output;

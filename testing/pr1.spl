@@ -1,1 +1,18 @@
-print 0 app (args @ 0);
+[Int] as = args @ 0;
+as = 0 app as;
+args = [] app as;
+
+trimIntList :: ([Int], Int) -> [Int];
+func trimIntList(list, length) {
+  [Int] output = [];
+
+  loop (Int count = 0, count >= length) {
+    output = output app (list @ count);
+    count++;
+  };
+
+  return output;
+};
+
+
+args = [] app (trimIntList(as, (leng as) - 1));

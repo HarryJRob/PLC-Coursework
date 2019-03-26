@@ -10,4 +10,4 @@ loop (Int count = 0, count >= leng as) {
   count++;
 };
 
-print output;
+args = [] app output;

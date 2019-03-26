@@ -51,8 +51,11 @@ data Frame = HNewAssignment Type String
            | HListGetLength
            | HListAppendValue Value
            | ListAppendValueH Exp
+           | HListConcatonateValue Value
+           | ListConcatonateValueH Exp
 
-           | HFunctionCall Environment
+           | HFunctionCall String ValueList ValueList VarList
+           | FunctionCallH Environment
            deriving (Show, Eq)
 
 type Kontinuation = [ Frame ]
@@ -77,24 +80,16 @@ replaceValueBinding (s1,e1) ((s2,e2):env)
   | s1 == s2                 = (s1,e1):env
   | otherwise                = (s2,e2):(replaceValueBinding (s1,e1) env)
 
-mapFunctionBindings :: VarList -> ValueList -> Environment -> Environment
-mapFunctionBindings (VarList s e1) (EmptyValueList) env                                      = error "Number of parameters passed to function do not match declaration"
-mapFunctionBindings (EmptyVarList) (ValueList e1 e2) env                                     = error "Number of parameters passed to function do not match declaration"
-mapFunctionBindings (EmptyVarList) (EmptyValueList) env                                      = []
-mapFunctionBindings (VarList s e1) (ValueList (VariableValue e2) e3) env                     = (s, getValueBinding e2 env):(mapFunctionBindings e1 e3 env)
-mapFunctionBindings (VarList s e1) (ValueList e2 e3) env                                     = (s, (Val e2)):(mapFunctionBindings e1 e3 env)
-
-checkFunctionVariablesBound :: ValueList -> Environment -> Bool
-checkFunctionVariablesBound (EmptyValueList) env                  = True
-checkFunctionVariablesBound _ []                                  = False
-checkFunctionVariablesBound (ValueList (VariableValue e1) e2) env = (isValueBound e1 env) && (checkFunctionVariablesBound e2 env)
-checkFunctionVariablesBound (ValueList e1 e2) env                 = (isValue (Val e1)) && (checkFunctionVariablesBound e2 env)
-
 getAllFunctionBindings :: Environment -> Environment
 getAllFunctionBindings []                                           = []
 getAllFunctionBindings ((s,(ExpList (VarListWrapper e1) e2)):env1)  = (s,(ExpList (VarListWrapper e1) e2)):(getAllFunctionBindings env1)
 getAllFunctionBindings ((s,e1):env1)                                = getAllFunctionBindings env1
 
+mapFunctionCallVars :: ValueList -> VarList -> Environment
+mapFunctionCallVars (EmptyValueList) (EmptyVarList)           = []
+mapFunctionCallVars (ValueList val1 val2) (VarList var1 var2) = (var1, (Val val1)):(mapFunctionCallVars val2 var2)
+
+-- Loop Helper Functions
 updateEnvironment :: Environment -> Environment -> Environment
 updateEnvironment [] env2             = env2
 updateEnvironment ((s,e):env1) env2   = if isValueBound s env2 then updateEnvironment env1 (replaceValueBinding (s,e) env2) else updateEnvironment env1 env2
@@ -111,18 +106,17 @@ listGetLength :: ValueList -> Int
 listGetLength (EmptyValueList)  = 0
 listGetLength (ValueList e1 e2) = 1 + listGetLength e2
 
-appendTwoValueLists :: ValueList -> ValueList -> ValueList
-appendTwoValueLists (EmptyValueList) (EmptyValueList)        = EmptyValueList
-appendTwoValueLists (EmptyValueList) (ValueList e1 e2 )      = ValueList e1 e2
-appendTwoValueLists (ValueList e1 e2) (EmptyValueList)       = ValueList e1 e2
-appendTwoValueLists (ValueList e1 e2) e3                     = ValueList e1 (appendTwoValueLists e2 e3)
+concatTwoValueLists :: ValueList -> ValueList -> ValueList
+concatTwoValueLists (EmptyValueList) (EmptyValueList)        = EmptyValueList
+concatTwoValueLists (EmptyValueList) (ValueList e1 e2 )      = ValueList e1 e2
+concatTwoValueLists (ValueList e1 e2) (EmptyValueList)       = ValueList e1 e2
+concatTwoValueLists (ValueList e1 e2) e3                     = ValueList e1 (concatTwoValueLists e2 e3)
 
 appendValueList :: ValueList -> Value -> ValueList
 appendValueList (EmptyValueList) v                = ValueList v EmptyValueList
 appendValueList (ValueList e1 e2) v               = ValueList e1 (appendValueList e2 v)
 
 listAppend :: Value -> Value -> ValueList
-listAppend (List e1) (List e2)     = appendTwoValueLists e1 e2
 listAppend (List e1) e2            = appendValueList e1 e2
 listAppend e1 (List e2)            = ValueList e1 e2
 listAppend e1 e2                   = ValueList e1 (ValueList e2 EmptyValueList)
@@ -188,12 +182,25 @@ evalExp ((FuncTypeDeclaration e1 e2), env, k)                = if isValueBound e
 evalExp ((FuncDeclaration e1 e2 e3), env, k)                 = if isValueBound e1 env then return ((Val (NullValue)), (replaceValueBinding (e1, (ExpList (VarListWrapper e2) e3)) env), k) else error ("Function binding not found for: " ++ e1)
 
 -- TODO: evaluate all arguments of function call to final value
-evalExp ((Val (FunctionCall e1 e2)), env, k)                 = if (getValueBinding e1 env /= (Val (NullValue))) && checkFunctionVariablesBound e2 env
-                                                                 then return (body, (getAllFunctionBindings env ++ mapFunctionBindings vars e2 env), (HFunctionCall env):k)
-                                                                 else error ("Invalid function call " ++ e1)
-                                                                   where
-                                                                     (ExpList (VarListWrapper vars) body) = getValueBinding e1 env
-evalExp (v, env1, (HFunctionCall env2):k) | isValue v        = return (v, env2, k)
+evalExp ((Val (FunctionCall s vl)), env, k) = if (getValueBinding s env /= (Val (NullValue)))
+                                                then if getVarListLength e1 == getValueListLength vl
+                                                  then if getValueListLength vl == 0
+                                                    then return ((Val NullValue), env, (HFunctionCall s EmptyValueList EmptyValueList e1):k)
+                                                    else return ((Val v1), env, (HFunctionCall s v2 (EmptyValueList) e1):k)
+                                                  else error ("Invalid number of parameters passed to function call: " ++ s)
+                                                else error ("No function body found for function: " ++ s )
+                                                  where
+                                                    (ExpList (VarListWrapper e1) e2) = getValueBinding s env
+                                                    (ValueList v1 v2) = vl
+
+evalExp (v@(Val v1), env, (HFunctionCall name vRemain vDone assignVars):k) | isValue v   = if (vRemain == EmptyValueList)
+                                                                                            then return (body, ((mapFunctionCallVars (appendValueList vDone v1) assignVars) ++ (getAllFunctionBindings env)), (FunctionCallH env):k)
+                                                                                            else return ((Val v2), env, (HFunctionCall name v3 (appendValueList vDone v1) assignVars):k)
+                                                                                              where
+                                                                                                 (ValueList v2 v3) = vRemain
+                                                                                                 (ExpList _ body) = (getValueBinding name env)
+
+evalExp (v, env1, (FunctionCallH env2):k) | isValue v        = return (v, env2, k)
 
 evalExp ((ReturnStatement e1), env, k)                       = return ((Val e1), env, (HReturnStatement):k)
 evalExp (v, env, (HReturnStatement):k) | isValue v           = return (v, env, k)
@@ -271,13 +278,15 @@ evalExp ((Val (List e1)), env, (ListGetElementH (IntValue e2)):k) | isValue (Val
 evalExp ((Val (ListGetLength e1)), env, k)                                                  = return ((Val e1), env, (HListGetLength):k)
 evalExp ((Val (List e1)), env, (HListGetLength):k)                                          = return ((Val (IntValue (listGetLength e1))), env, k)
 
-
 evalExp ((Val (ListAppendValue e1 e2)), env, k)                                             = return ((Val e2), env, (HListAppendValue e1):k)
 evalExp (v, env, (HListAppendValue e1):k) | isValue v                                       = return ((Val e1), env, (ListAppendValueH v):k)
 evalExp (v@(Val e1), env, (ListAppendValueH (Val e2)):k) | isValue v                        = return ((Val (List (listAppend e1 e2))), env, k)
 
-evalFull :: String -> IO State
-evalFull = evalProgram . parse
+evalExp(Val(ListConcatonateValue e1 e2), env, k)                                            = return ((Val e2), env, (HListConcatonateValue e1):k)
+evalExp (v, env, (HListConcatonateValue e1):k) | isValue v                                  = return ((Val e1), env, (ListConcatonateValueH v):k)
+evalExp (v@(Val (List e1)), env, (ListConcatonateValueH (Val (List e2))):k) | isValue v                   = return ((Val (List (concatTwoValueLists e1 e2))), env, k)
+
+evalExp (v, env, k) = error ("Non-exhaustive patterns\n\tv = " ++ show v ++ "\n\tenv = " ++ show env ++ "\n\tkontinuation = " ++ show k)
 
 evalProgram :: Exp -> IO State
 evalProgram e = do
@@ -298,6 +307,10 @@ evalLoop state = do
                   else do
                     s3 <- evalLoop $ return s2
                     return s3
+
+-- Functions below are used for testing only!
+evalFull :: String -> IO State
+evalFull = evalProgram . parse
 
 parse :: String -> Exp
 parse = parseCalc . alexScanTokens

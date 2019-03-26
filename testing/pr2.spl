@@ -1,1 +1,1 @@
-print ([] app args) app args
+args = ([] app (args @ 0)) app (args @ 0)

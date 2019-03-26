@@ -59,6 +59,7 @@ import Lexer
     "print"   { TokenKeywordPrint p }
     "leng"    { TokenKeywordLength p }
     "append"  { TokenKeywordAppend p }
+    "concat"  { TokenKeywordConcatonate p }
     var       { TokenVariable p $$ }
     str       { TokenString p $$ }
     char      { TokenChar p  $$ }
@@ -72,7 +73,7 @@ import Lexer
 %nonassoc '<' '>' "==" "<=" ">=" "!="
 %nonassoc '!'
 %nonassoc "leng"
-%right "append"
+%right "append" "concat"
 %right '@'
 %left '+' '-'
 %left '*' '/' '%'
@@ -125,6 +126,7 @@ Value : Value '+' Value             { ArithmeticAdd $1 $3 }
       | Value '@' Value             { ListGetElement $1 $3 }
       | "leng" Value                { ListGetLength $2 }
       | Value "append" Value        { ListAppendValue $1 $3 }
+      | Value "concat" Value        { ListConcatonateValue $1 $3 }
       | var                         { VariableValue $1 }
       | str                         { StringValue $1 }
       | int                         { IntValue $1 }
@@ -195,6 +197,7 @@ data Value = ArithmeticAdd Value Value
            | ListGetElement Value Value
            | ListGetLength Value
            | ListAppendValue Value Value
+           | ListConcatonateValue Value Value
            | VariableValue String
            | StringValue String
            | IntValue Int

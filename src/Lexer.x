@@ -67,6 +67,7 @@ Tokens :-
   print         { \p s -> TokenKeywordPrint p }
   leng          { \p s -> TokenKeywordLength p }
   app           { \p s -> TokenKeywordAppend p }
+  concat        { \p s -> TokenKeywordConcatonate p }
 
   [t T]rue      { \p s -> TokenBoolTrue p }
   [f F]alse     { \p s -> TokenBoolFalse p }
@@ -135,6 +136,7 @@ data Token =
   TokenKeywordPrint AlexPosn |
   TokenKeywordLength AlexPosn |
   TokenKeywordAppend AlexPosn |
+  TokenKeywordConcatonate AlexPosn |
 
   TokenVariable AlexPosn String |
   TokenString AlexPosn String |
@@ -203,6 +205,7 @@ tokenPosn (TokenKeywordReturn (AlexPn a l c) )               = ("Line: " ++ show
 tokenPosn (TokenKeywordPrint (AlexPn a l c) )                = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenKeywordLength (AlexPn a l c))                = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenKeywordAppend (AlexPn a l c))                = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
+tokenPosn (TokenKeywordConcatonate (AlexPn a l c))           = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 
 tokenPosn (TokenVariable (AlexPn a l c) s )                  = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
 tokenPosn (TokenString (AlexPn a l c) s )                    = ("Line: " ++ show l ++ "\t" ++ "Column: " ++ show c )
